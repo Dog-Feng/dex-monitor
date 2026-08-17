@@ -13,6 +13,7 @@ from app.models.sqlite import connect, init_db
 from app.views.web_api import (
     build_anomalies,
     build_metrics,
+    build_monitor_tokens,
     build_overview,
     build_token_metadata,
 )
@@ -35,6 +36,10 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     @app.route("/")
     def index():
         return send_from_directory(WEB_ROOT, "index.html")
+
+    @app.route("/preview")
+    def preview():
+        return send_from_directory(WEB_ROOT, "preview.html")
 
     @app.route("/css/<path:filename>")
     def css(filename: str):
@@ -63,12 +68,24 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         limit = int(request.args.get("limit", 60))
         return jsonify(build_metrics(repo, limit=limit))
 
+    @app.route("/api/monitor-tokens")
+    def api_monitor_tokens():
+        from flask import request
+
+        limit = int(request.args.get("limit", 100))
+        detection_cfg = cfg.get("detection", {})
+        return jsonify(build_monitor_tokens(repo, detection_cfg, limit=limit))
+
     @app.route("/api/token-metadata")
     def api_token_metadata():
         from flask import request
 
         limit = int(request.args.get("limit", 100))
         return jsonify(build_token_metadata(repo, limit=limit))
+
+    @app.route("/favicon.ico")
+    def favicon():
+        return ("", 204)
 
     @app.route("/api/health")
     def api_health():
@@ -77,13 +94,19 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     return app
 
 
+def _serve_app(app: Flask, host: str, port: int) -> None:
+    logger.info("Web dashboard http://%s:%s (waitress)", host, port)
+    from waitress import serve
+
+    serve(app, host=host, port=port, threads=4)
+
+
 def run_web_server(config: dict[str, Any]) -> None:
     web_cfg = config.get("web", {})
     host = web_cfg.get("host", "127.0.0.1")
     port = int(web_cfg.get("port", DEFAULT_WEB_PORT))
     app = create_app(config)
-    logger.info("Web dashboard http://%s:%s", host, port)
-    app.run(host=host, port=port, debug=False, threaded=True, use_reloader=False)
+    _serve_app(app, host, port)
 
 
 def start_web_server_background(config: dict[str, Any]) -> threading.Thread | None:
@@ -97,8 +120,7 @@ def start_web_server_background(config: dict[str, Any]) -> threading.Thread | No
     app = create_app(config)
 
     def _serve() -> None:
-        logger.info("Web dashboard http://%s:%s", host, port)
-        app.run(host=host, port=port, debug=False, threaded=True, use_reloader=False)
+        _serve_app(app, host, port)
 
     thread = threading.Thread(target=_serve, name="web-dashboard", daemon=True)
     thread.start()

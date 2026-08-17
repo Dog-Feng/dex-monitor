@@ -320,6 +320,7 @@ WAL 模式：`PRAGMA journal_mode=WAL;`
 | volume_5m | REAL | |
 | oi | REAL | 未平仓量（张或 USDT 名义，统一口径） |
 | funding_rate | REAL | 当前/最近费率 |
+| funding_interval_hours | INTEGER | 资金费结算周期（小时，默认 8） |
 | whale_long_short_ratio | REAL | 大户多空比 |
 | market_cap | REAL | 流通市值 USD |
 | oi_mcap_ratio | REAL | 衍生字段 |
@@ -587,7 +588,7 @@ Python **3.11+**（使用 `list[str]` 等类型注解）。
 | 扩展 | 做法 |
 |------|------|
 | 多加一所 | 新 fetcher 实现同一 interface，`poll_controller` 注入 |
-| Web 看板 | 新增 `views/web_view.py`（Flask 只读查 SQLite） |
+| Web 看板 | 已实现：`views/web_server.py` + `web_api.py`；`/api/monitor-tokens` 聚合指标与规则结论 |
 | 人工标注 | `anomaly_events` 加 `user_note` 列 |
 | OKX 同步 | `fetchers/okx.py` |
 
@@ -599,6 +600,35 @@ Python **3.11+**（使用 `list[str]` 等类型注解）。
 2. 若误报多：提高 `surge_pct` 或 `vol_multiplier`。
 3. 若漏报小盘：对 `oi_mcap_ratio > 0.25` 的 symbol 单独降低阈值（symbol 级 override，后期可加）。
 4. 负费率 `-1%/-2%` 场景：将 `funding_extreme` 设为 `-0.01` 单独打 tag，severity 升为 HIGH。
+
+---
+
+## 15. Web 看板与 API（2026-08 更新）
+
+### 15.1 页面结构
+
+- **异常监控**：代币维度一行；左对齐表格；结论列为规则引擎输出的中文摘要（非 LLM）
+- **代币库**：`token_metadata` 只读列表
+- 离线 Mock：`web/static-demo.html`；服务端预览：`/preview`
+
+### 15.2 结论生成
+
+1. poll 检测异常 → `ExplainController.enrich()` → `narrative` 末行 `→ …` 为结论
+2. 看板实时行：优先 6h 内已入库异常 narrative；否则 `summarize_for_display()` 按当前指标即时推断
+3. 话术模板写死在 `explain_controller._summary_line()`，触发条件由 tags / 阈值决定
+
+### 15.3 主要 API
+
+| 路径 | 用途 |
+|------|------|
+| `/api/monitor-tokens` | 监控主表（含 15M/24H、费率周期、结论） |
+| `/api/overview` | 顶栏状态、最近 metric 时间 |
+| `/api/token-metadata` | 代币库 |
+
+### 15.4 重启行为
+
+- SQLite 文件 `data/monitor.db` 持久化；重启后 `bootstrap()` 从库加载最近 metrics 到 `HistoryBuffer`
+- 不删除历史；仅内存缓存（费率周期 map、市值 cache）会重建
 
 ---
 

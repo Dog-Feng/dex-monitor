@@ -15,7 +15,7 @@ Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空*
 | 异常检测 | SURGE / DUMP / 杠杆过热 |
 | 归因 | 轧空、拉盘、清多、解锁供应等 tags + 中文 narrative |
 | 代币元数据 | CoinGecko 解析合约 → `token_metadata` 持久化 |
-| Web 看板 | 暗色总控台 UI（参考 [dex-grid](https://github.com/Dog-Feng/dex-grid/tree/main/web)） |
+| Web 看板 | 代币一行监控表：指标 + 规则结论 + 归因详情；10s 自动刷新 |
 
 ---
 
@@ -108,14 +108,35 @@ alert:
 
 ## Web 看板
 
+访问 **http://127.0.0.1:8089**（或配置的 `web.host` / `web.port`）。
+
 | Tab | 内容 |
 |-----|------|
-| 总览 | 24h 异常统计、最近事件 |
-| 异常事件 | 列表 + 点击归因详情 |
-| 实时指标 | 各币最新价、费率、OI |
-| 代币库 | 持久化合约地址 |
+| **异常监控** | 一行一币：价格、15M/24H、费率（含结算周期 8h/4h/1h）、OI、OI÷市值、大户多空比、**分析结论**；支持 15M/24H/费率排序；点击行查看完整归因 |
+| **代币库** | `token_metadata` 持久化合约（BSC 优先） |
 
 看板 **无登录鉴权**，只读 API；**不应在公网暴露写操作**（本项目无写接口）。
+
+### API（只读）
+
+| 路径 | 说明 |
+|------|------|
+| `GET /api/health` | 健康检查 |
+| `GET /api/overview` | 统计与最近采集时间 |
+| `GET /api/monitor-tokens` | **主表数据**：指标 + 结论 + narrative |
+| `GET /api/metrics` | 各 symbol 最新 metrics 快照 |
+| `GET /api/anomalies?days=7` | 历史异常事件 |
+| `GET /api/token-metadata` | 代币库 |
+
+前端每 **10 秒**拉取；指标采集默认每 **60 秒**（`poll_interval_seconds`）。
+
+### 静态 UI 预览（无需启动服务）
+
+双击打开 **`web/static-demo.html`** 可离线预览布局与 Mock 交互；正式数据以 `/` 为准。
+
+### 重启与数据
+
+历史数据在 **`data/monitor.db`**（SQLite）。正常重启 **不会清空** metrics、异常记录、代币库；进程启动时会从库恢复内存缓冲并继续采集。详见 [DEPLOY.md](docs/DEPLOY.md) 备份说明。
 
 ---
 
@@ -126,7 +147,7 @@ token-anomaly-monitor/
 ├── main.py                 # 入口
 ├── config.yaml             # 运行配置
 ├── app/                    # MVC 业务代码
-├── web/                    # 看板静态页
+├── web/                    # 看板静态页（index.html、monitor.css、static-demo.html）
 ├── data/                   # SQLite + 日志（运行时生成）
 ├── deploy/                 # systemd 等部署模板
 └── docs/

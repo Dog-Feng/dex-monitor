@@ -63,6 +63,7 @@ class MetricSnapshot:
     whale_long_short_ratio: float | None = None
     market_cap: float | None = None
     oi_mcap_ratio: float | None = None
+    funding_interval_hours: int = 8
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

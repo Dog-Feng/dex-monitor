@@ -12,6 +12,7 @@ from app.services.rate_limiter import RateLimiter
 logger = logging.getLogger(__name__)
 
 BINANCE_FAPI = "https://fapi.binance.com"
+DEFAULT_FUNDING_INTERVAL_HOURS = 8
 
 
 class BinanceFetcher:
@@ -20,6 +21,28 @@ class BinanceFetcher:
         self.rate_limiter = rate_limiter or RateLimiter(0.12)
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "token-anomaly-monitor/0.1"})
+        self._funding_interval_cache: dict[str, int] = {}
+        self._funding_interval_fetched_at = 0.0
+
+    def refresh_funding_intervals(self, force: bool = False) -> None:
+        now = time.time()
+        if not force and now - self._funding_interval_fetched_at < 3600:
+            return
+        try:
+            data = self._get(f"{BINANCE_FAPI}/fapi/v1/fundingInfo", {})
+            if isinstance(data, list):
+                for item in data:
+                    symbol = item.get("symbol")
+                    hours = item.get("fundingIntervalHours")
+                    if symbol and hours is not None:
+                        self._funding_interval_cache[symbol] = int(hours)
+            self._funding_interval_fetched_at = now
+        except Exception as exc:
+            logger.warning("Binance fundingInfo fetch failed: %s", exc)
+
+    def get_funding_interval_hours(self, symbol: str) -> int:
+        self.refresh_funding_intervals()
+        return self._funding_interval_cache.get(symbol, DEFAULT_FUNDING_INTERVAL_HOURS)
 
     def fetch_snapshot(self, symbol: str) -> MetricSnapshot | None:
         try:
@@ -29,6 +52,7 @@ class BinanceFetcher:
             oi = self._fetch_open_interest(symbol)
             funding = self._fetch_funding_rate(symbol)
             whale_ratio = self._fetch_whale_ratio(symbol)
+            funding_interval = self.get_funding_interval_hours(symbol)
             ts = int(kline["close_time"] // 1000)
             price = float(kline["close"])
             volume = float(kline["volume"])
@@ -40,6 +64,7 @@ class BinanceFetcher:
                 oi=oi or 0.0,
                 funding_rate=funding or 0.0,
                 whale_long_short_ratio=whale_ratio,
+                funding_interval_hours=funding_interval,
             )
         except Exception as exc:
             logger.warning("Binance fetch failed for %s: %s", symbol, exc)
@@ -72,6 +97,7 @@ class BinanceFetcher:
         oi: float | None = None,
         funding_rate: float | None = None,
         whale_ratio: float | None = None,
+        funding_interval_hours: int = DEFAULT_FUNDING_INTERVAL_HOURS,
     ) -> list[MetricSnapshot]:
         snapshots = []
         for k in klines:
@@ -84,6 +110,7 @@ class BinanceFetcher:
                     oi=oi or 0.0,
                     funding_rate=funding_rate or 0.0,
                     whale_long_short_ratio=whale_ratio,
+                    funding_interval_hours=funding_interval_hours,
                 )
             )
         return snapshots

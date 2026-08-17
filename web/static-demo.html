@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>代币异常监控台 · 静态预览</title>
+  <style>
+    :root {
+      --bg: #0a0e17; --bg2: #0f1420; --panel: #141924; --panel2: #1a2235;
+      --border: #1e2d45; --border2: #253350; --txt: #dde6f0;
+      --mut: #6b82a0; --mut2: #8fa5c0; --grn: #22c55e; --red: #ef4444;
+      --yel: #f59e0b; --pur: #8b5cf6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--txt);
+      font: 14px/1.5 -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 20px; height: 52px; background: var(--panel);
+      border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-logo span { color: var(--pur); }
+    .header-sep { width: 1px; height: 20px; background: var(--border2); }
+    .ex-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .clock { font-variant-numeric: tabular-nums; color: var(--mut2); font-size: 13px; }
+    .ex-chip {
+      display: inline-flex; align-items: center; gap: 2px;
+      font-size: 12px; font-weight: 700; letter-spacing: .3px;
+      color: var(--mut2); padding: 3px 8px; border-radius: 6px;
+      border: 1px solid var(--border2); background: var(--bg2);
+    }
+    .preview-badge { color: var(--yel) !important; border-color: #f59e0b50 !important; }
+    .hdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--mut); margin-right: 4px; vertical-align: middle; }
+    .hdot.ok { background: var(--grn); box-shadow: 0 0 6px var(--grn); }
+    .conn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; padding: 3px 11px; border-radius: 20px;
+      border: 1px solid var(--border2); color: var(--mut2);
+    }
+    .main-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--panel); padding: 0 20px;
+    }
+    .tab-btn {
+      padding: 10px 18px; cursor: pointer; font-size: 14px; font-weight: 500;
+      color: var(--mut2); border: none; background: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: all .15s; font-family: inherit;
+    }
+    .tab-btn:hover { color: var(--txt); }
+    .tab-btn.active { color: var(--txt); border-bottom-color: var(--pur); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .wrap { padding: 16px 20px; max-width: 1600px; margin: 0 auto; }
+    .static-banner {
+      margin-bottom: 14px; padding: 8px 12px; border-radius: 8px;
+      border: 1px dashed #8b5cf650; background: #8b5cf612;
+      color: #c4b5fd; font-size: 13px;
+    }
+    .static-banner.warn { border-color: #f59e0b50; background: #f59e0b12; color: #fcd34d; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .panel-title {
+      font-size: 11px; font-weight: 600; letter-spacing: .6px;
+      text-transform: uppercase; color: var(--mut2); margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .panel-table { padding: 0; overflow: hidden; }
+    .panel-table .panel-title { padding: 14px 16px 12px; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+    .panel-meta { font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--mut); }
+    .panel-meta strong { color: var(--mut2); font-weight: 600; }
+    .table-scroll { overflow-x: auto; padding: 0 8px 8px; }
+    .tbl-monitor {
+      width: 100%; min-width: 1120px; border-collapse: collapse;
+      table-layout: fixed; font-size: 13px;
+    }
+    .tbl-monitor col.col-sym { width: 96px; }
+    .tbl-monitor col.col-price { width: 88px; }
+    .tbl-monitor col.col-pct { width: 80px; }
+    .tbl-monitor col.col-fund { width: 116px; }
+    .tbl-monitor col.col-oi { width: 80px; }
+    .tbl-monitor col.col-ratio { width: 96px; }
+    .tbl-monitor col.col-whale { width: 100px; }
+    .tbl-monitor th, .tbl-monitor td {
+      padding: 11px 8px; border-bottom: 1px solid var(--border);
+      vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: left;
+    }
+    .tbl-monitor th {
+      position: sticky; top: 0; z-index: 2; background: var(--panel);
+      color: var(--mut2); font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .tbl-monitor tbody tr { cursor: pointer; transition: background 0.12s; }
+    .tbl-monitor tbody tr:hover td { background: var(--panel2); }
+    .tbl-monitor tbody tr.selected td { background: #8b5cf618; }
+    .tbl-tokens tbody tr { cursor: default; }
+    .tbl-monitor td.cell-conclusion, .tbl-monitor th.col-conclusion {
+      white-space: normal; line-height: 1.5; overflow: visible; text-overflow: unset;
+    }
+    .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+    .fund-interval { color: var(--mut); font-size: 12px; font-weight: 500; margin-left: 1px; }
+    .up { color: var(--grn); }
+    .down { color: var(--red); }
+    .mut { color: var(--mut2); }
+    .th-tip { cursor: help; border-bottom: 1px dotted var(--mut); }
+    th.sortable { padding: 0; }
+    .sort-btn {
+      display: flex; align-items: center; justify-content: flex-start; gap: 4px;
+      width: 100%; padding: 11px 8px; border: none; background: none;
+      color: inherit; font: inherit; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.4px; cursor: pointer; text-transform: uppercase; text-align: left;
+    }
+    .sort-btn:hover { color: var(--txt); }
+    th.sortable.sorted .sort-btn { color: var(--pur); }
+    .sort-icon { font-size: 10px; line-height: 1; opacity: 0.45; flex-shrink: 0; }
+    th.sortable.sorted .sort-icon { opacity: 1; color: var(--pur); }
+    .narrative-box { white-space: pre-wrap; font-size: 13px; color: var(--mut2); line-height: 1.65; min-height: 72px; padding: 4px 2px; }
+    .detail-panel { margin-top: 14px; }
+    .tbl-tokens { min-width: 720px; font-size: 13px; }
+    .tbl-tokens col.tk-base { width: 72px; }
+    .tbl-tokens col.tk-symbol { width: 108px; }
+    .tbl-tokens col.tk-chain { width: 56px; }
+    .tbl-tokens col.tk-contract { width: 168px; }
+    .tbl-tokens col.tk-cg { width: 140px; }
+    .tbl-tokens col.tk-updated { width: 96px; }
+    .tbl-tokens .contract { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; color: var(--mut2); }
+    .cell-flash-up { animation: flashUp 0.7s ease; }
+    .cell-flash-down { animation: flashDown 0.7s ease; }
+    @keyframes flashUp { 0% { background: #22c55e30; } 100% { background: transparent; } }
+    @keyframes flashDown { 0% { background: #ef444430; } 100% { background: transparent; } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-logo">代币异常<span>监控台</span></div>
+    <div class="header-sep"></div>
+    <div class="ex-chips">
+      <span class="ex-chip"><i class="hdot ok"></i>监控中</span>
+      <span class="ex-chip">Binance 永续</span>
+      <span class="ex-chip">BSC 优先</span>
+      <span class="ex-chip preview-badge">离线静态预览</span>
+    </div>
+    <div class="header-right">
+      <span class="conn"><i class="hdot ok"></i><span>Mock 数据</span></span>
+      <span class="clock" id="clock">—</span>
+    </div>
+  </header>
+
+  <nav class="main-tabs">
+    <button class="tab-btn active" data-tab="monitor">异常监控</button>
+    <button class="tab-btn" data-tab="tokens">代币库</button>
+  </nav>
+
+  <main class="wrap">
+    <div class="static-banner warn">
+      无需启动服务，直接打开本文件预览。15M / 24H / 费率列可点击排序；悬停「OI÷市值」「大户多空比」查看含义。
+    </div>
+
+    <section id="tab-monitor" class="tab-panel active">
+      <div class="panel panel-table">
+        <div class="panel-title">
+          <span>代币监控 · 一行一币</span>
+          <span class="panel-meta">共 <strong id="token-count">0</strong> 个 · 更新于 <strong id="last-refresh">—</strong></span>
+        </div>
+        <div class="table-scroll">
+          <table class="tbl-monitor" id="tbl-monitor">
+            <colgroup>
+              <col class="col-sym" /><col class="col-price" /><col class="col-pct" /><col class="col-pct" />
+              <col class="col-fund" /><col class="col-oi" /><col class="col-ratio" /><col class="col-whale" /><col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>代币</th>
+                <th>价格</th>
+                <th class="sortable" data-sort="change_15m">
+                  <button type="button" class="sort-btn">15M <span class="sort-icon">↕</span></button>
+                </th>
+                <th class="sortable" data-sort="change_24h">
+                  <button type="button" class="sort-btn">24H <span class="sort-icon">↕</span></button>
+                </th>
+                <th class="sortable" data-sort="funding_rate">
+                  <button type="button" class="sort-btn">费率 <span class="sort-icon">↕</span></button>
+                </th>
+                <th>OI</th>
+                <th>
+                  <span class="th-tip" title="未平仓合约(OI)名义价值 ÷ 流通市值。比值越高，杠杆持仓相对市值越集中，波动/清算风险越大。">OI÷市值</span>
+                </th>
+                <th>
+                  <span class="th-tip" title="Binance 大户账户多空比 = 持多大户数 ÷ 持空大户数。>1 表示大户偏多，<1 表示大户偏空，=1 表示大致均衡。">大户多空比</span>
+                </th>
+                <th class="col-conclusion">结论</th>
+              </tr>
+            </thead>
+            <tbody id="monitor-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel detail-panel">
+        <div class="panel-title">归因说明 <span class="panel-meta" id="detail-symbol">点击表格行查看</span></div>
+        <div id="narrative" class="narrative-box">—</div>
+      </div>
+    </section>
+
+    <section id="tab-tokens" class="tab-panel">
+      <div class="panel panel-table">
+        <div class="panel-title">token_metadata 持久化合约库</div>
+        <div class="table-scroll">
+          <table class="tbl-monitor tbl-tokens">
+            <colgroup>
+              <col class="tk-base" /><col class="tk-symbol" /><col class="tk-chain" />
+              <col class="tk-contract" /><col class="tk-cg" /><col class="tk-updated" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Base</th>
+                <th>永续</th>
+                <th>链</th>
+                <th>合约</th>
+                <th>CoinGecko</th>
+                <th>更新</th>
+              </tr>
+            </thead>
+            <tbody id="tokens-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+(function () {
+  var MOCK_TOKENS = [
+    { symbol: 'GPSUSDT', base: 'GPS', price: 0.01234, change_24h: 12.6, change_15m: -3.52, funding_rate: -0.000068, funding_interval_hours: 8, oi: 12500000, oi_mcap_ratio: 0.251, whale_ls: 1.85, conclusion: '解锁窗口内，供应冲击风险偏高', narrative: 'GPS 15m -3.5% | OI 30m: 0.0% | Funding: -0.007% | OI/MCap: 0.25\n链上: 窗口内无显著充值/转出\n→ 解锁窗口内，供应冲击风险偏高' },
+    { symbol: 'PORTALUSDT', base: 'PORTAL', price: 0.0892, change_24h: 18.4, change_15m: 11.25, funding_rate: 0.000512, funding_interval_hours: 4, oi: 8200000, oi_mcap_ratio: 0.182, whale_ls: 2.14, conclusion: '价涨+OI升+正费率，主动拉盘追多', narrative: 'PORTAL 15m +11.2% | OI 30m +6.2% | Funding: +0.051%\n→ 价涨+OI升+正费率，主动拉盘追多' },
+    { symbol: 'ACEUSDT', base: 'ACE', price: 1.245, change_24h: -15.2, change_15m: -9.18, funding_rate: 0.000891, funding_interval_hours: 8, oi: 3100000, oi_mcap_ratio: 0.328, whale_ls: 0.92, conclusion: '价跌+OI降，多头清算为主', narrative: 'ACE 15m -9.2% | OI 30m -7.5% | Funding: +0.089%\n→ 价跌+OI降，多头清算为主' },
+    { symbol: 'VELVETUSDT', base: 'VELVET', price: 0.00341, change_24h: -28.5, change_15m: 2.08, funding_rate: -0.001842, funding_interval_hours: 1, oi: 22000000, oi_mcap_ratio: 0.412, whale_ls: 1.12, conclusion: '高位极端负费率，空头极度拥挤，警惕轧空或反转', narrative: 'VELVET 15m +2.1% | 费率 -0.184% 极端负值\n→ 高位极端负费率，空头极度拥挤' },
+    { symbol: 'CAKEUSDT', base: 'CAKE', price: 2.156, change_24h: 4.2, change_15m: 0.65, funding_rate: 0.000102, funding_interval_hours: 8, oi: 45000000, oi_mcap_ratio: 0.088, whale_ls: 1.05, conclusion: '暂无明显异常结构，持续监控中', narrative: 'CAKE 暂无明显异常结构，持续监控中。' },
+  ];
+  var MOCK_METADATA = [
+    { base: 'GPS', symbol: 'GPSUSDT', chain: 'bsc', contract: '0x4a220e6096a25adb0e783b1a8e8c2a8893b6b9f8', cg: 'gps-ecosystem', updated: '2026-08-17 15:20' },
+    { base: 'PORTAL', symbol: 'PORTALUSDT', chain: 'bsc', contract: '0x1bbe973bef3a40fc36f880eb7123073090ecef0', cg: 'portal-2', updated: '2026-08-17 15:18' },
+    { base: 'CAKE', symbol: 'CAKEUSDT', chain: 'bsc', contract: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82', cg: 'pancakeswap-token', updated: '2026-08-17 14:02' },
+  ];
+  var selectedSymbol = null;
+  var tokenState = JSON.parse(JSON.stringify(MOCK_TOKENS));
+  var sortState = { field: 'change_15m', dir: 'desc' };
+
+  function $(id) { return document.getElementById(id); }
+  function fmtPct(v, d) { d = d || 2; if (v == null || isNaN(v)) return '—'; var n = Number(v); return (n >= 0 ? '+' : '') + n.toFixed(d) + '%'; }
+  function pctClass(v) { if (v == null || v === 0) return 'mut'; return v > 0 ? 'up' : 'down'; }
+  function fmtFunding(r, intervalHours) {
+    intervalHours = intervalHours != null ? intervalHours : 8;
+    if (r == null) return '—';
+    var pct = (Number(r) * 100).toFixed(4) + '%';
+    return pct + '<span class="fund-interval">（' + intervalHours + 'h）</span>';
+  }
+  function fmtNum(n) {
+    if (n == null) return '—';
+    var x = Number(n);
+    if (x >= 1e9) return (x / 1e9).toFixed(2) + 'B';
+    if (x >= 1e6) return (x / 1e6).toFixed(2) + 'M';
+    if (x >= 1e3) return (x / 1e3).toFixed(2) + 'K';
+    if (x >= 1) return x.toFixed(4);
+    return x.toFixed(6);
+  }
+  function getConclusion(t) {
+    if (t.conclusion) return t.conclusion;
+    if (!t.narrative) return '—';
+    var lines = t.narrative.split('\n');
+    for (var i = lines.length - 1; i >= 0; i--) {
+      var line = lines[i].trim();
+      if (line.indexOf('→') === 0) return line.slice(1).trim();
+    }
+    return lines[0].trim() || '—';
+  }
+  function shortAddr(a) { if (!a || a.length < 12) return a || '—'; return a.slice(0, 8) + '…' + a.slice(-6); }
+  function applySort() {
+    if (!sortState.field) return;
+    tokenState.sort(function (a, b) {
+      var va = Number(a[sortState.field] || 0);
+      var vb = Number(b[sortState.field] || 0);
+      return sortState.dir === 'asc' ? va - vb : vb - va;
+    });
+  }
+  function updateSortIndicators() {
+    document.querySelectorAll('#tbl-monitor th.sortable').forEach(function (th) {
+      var icon = th.querySelector('.sort-icon');
+      if (!icon) return;
+      if (th.dataset.sort === sortState.field) {
+        th.classList.add('sorted');
+        icon.textContent = sortState.dir === 'desc' ? '▼' : '▲';
+      } else {
+        th.classList.remove('sorted');
+        icon.textContent = '↕';
+      }
+    });
+  }
+  function onSortClick(field) {
+    if (sortState.field === field) sortState.dir = sortState.dir === 'desc' ? 'asc' : 'desc';
+    else { sortState.field = field; sortState.dir = 'desc'; }
+    applySort();
+    renderMonitorTable();
+    updateSortIndicators();
+  }
+  function renderRow(t) {
+    var sel = selectedSymbol === t.symbol ? ' selected' : '';
+    return '<tr data-symbol="' + t.symbol + '" class="' + sel + '">' +
+      '<td data-field="base">' + t.base + '</td>' +
+      '<td class="num" data-field="price">' + fmtNum(t.price) + '</td>' +
+      '<td class="num ' + pctClass(t.change_15m) + '" data-field="change_15m">' + fmtPct(t.change_15m) + '</td>' +
+      '<td class="num ' + pctClass(t.change_24h) + '" data-field="change_24h">' + fmtPct(t.change_24h) + '</td>' +
+      '<td class="num" data-field="funding_rate">' + fmtFunding(t.funding_rate, t.funding_interval_hours) + '</td>' +
+      '<td class="num" data-field="oi">' + fmtNum(t.oi) + '</td>' +
+      '<td class="num" data-field="oi_mcap_ratio">' + Number(t.oi_mcap_ratio).toFixed(3) + '</td>' +
+      '<td class="num" data-field="whale_ls">' + Number(t.whale_ls).toFixed(2) + '</td>' +
+      '<td class="cell-conclusion" data-field="conclusion">' + getConclusion(t) + '</td></tr>';
+  }
+  function renderMonitorTable() {
+    var tbody = $('monitor-body');
+    tbody.innerHTML = tokenState.map(renderRow).join('');
+    $('token-count').textContent = String(tokenState.length);
+    tbody.querySelectorAll('tr').forEach(function (tr) {
+      tr.onclick = function () { selectToken(tr.dataset.symbol); };
+    });
+  }
+  function selectToken(symbol) {
+    selectedSymbol = symbol;
+    var t = tokenState.find(function (x) { return x.symbol === symbol; });
+    $('detail-symbol').textContent = symbol;
+    $('narrative').textContent = (t && t.narrative) || '—';
+    document.querySelectorAll('#monitor-body tr').forEach(function (tr) {
+      tr.classList.toggle('selected', tr.dataset.symbol === symbol);
+    });
+  }
+  function updateCell(tr, field, html, flash) {
+    var td = tr.querySelector('[data-field="' + field + '"]');
+    if (!td || td.innerHTML === html) return;
+    td.innerHTML = html;
+    if (flash) {
+      td.classList.remove('cell-flash-up', 'cell-flash-down');
+      void td.offsetWidth;
+      td.classList.add(flash === 'up' ? 'cell-flash-up' : 'cell-flash-down');
+    }
+  }
+  function setPctCell(tr, field, value) {
+    var td = tr.querySelector('[data-field="' + field + '"]');
+    if (!td) return;
+    var html = fmtPct(value);
+    var flash = value >= 0 ? 'up' : 'down';
+    if (td.innerHTML !== html) {
+      td.innerHTML = html;
+      td.className = 'num ' + pctClass(value);
+      void td.offsetWidth;
+      td.classList.add(flash === 'up' ? 'cell-flash-up' : 'cell-flash-down');
+    } else {
+      td.className = 'num ' + pctClass(value);
+    }
+  }
+  function tickMockUpdate() {
+    var now = new Date();
+    $('last-refresh').textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+    $('clock').textContent = now.toLocaleString('zh-CN', { hour12: false });
+    tokenState.forEach(function (t) {
+      var drift = (Math.random() - 0.5) * 0.012;
+      var oldPrice = t.price;
+      t.price = Math.max(0.000001, t.price * (1 + drift));
+      t.change_15m += (Math.random() - 0.5) * 0.35;
+      t.change_24h += (Math.random() - 0.5) * 0.08;
+      t.funding_rate += (Math.random() - 0.5) * 0.00005;
+      t.oi = Math.max(1000, t.oi * (1 + (Math.random() - 0.5) * 0.02));
+      t.whale_ls = Math.max(0.5, t.whale_ls + (Math.random() - 0.5) * 0.06);
+      var tr = document.querySelector('#monitor-body tr[data-symbol="' + t.symbol + '"]');
+      if (!tr) return;
+      var priceFlash = t.price >= oldPrice ? 'up' : 'down';
+      updateCell(tr, 'price', fmtNum(t.price), priceFlash);
+      setPctCell(tr, 'change_15m', t.change_15m);
+      setPctCell(tr, 'change_24h', t.change_24h);
+      updateCell(tr, 'funding_rate', fmtFunding(t.funding_rate, t.funding_interval_hours), null);
+      updateCell(tr, 'oi', fmtNum(t.oi), priceFlash);
+      updateCell(tr, 'whale_ls', Number(t.whale_ls).toFixed(2), null);
+    });
+    if (sortState.field) {
+      applySort();
+      renderMonitorTable();
+      updateSortIndicators();
+      if (selectedSymbol) {
+        document.querySelectorAll('#monitor-body tr').forEach(function (tr) {
+          tr.classList.toggle('selected', tr.dataset.symbol === selectedSymbol);
+        });
+      }
+    }
+  }
+  function renderTokensTable() {
+    $('tokens-body').innerHTML = MOCK_METADATA.map(function (m) {
+      return '<tr><td>' + m.base + '</td><td>' + m.symbol + '</td>' +
+        '<td>' + m.chain + '</td><td class="contract" title="' + m.contract + '">' + shortAddr(m.contract) + '</td>' +
+        '<td>' + m.cg + '</td><td class="num">' + m.updated.slice(5, 16) + '</td></tr>';
+    }).join('');
+  }
+  function initSortHeaders() {
+    document.querySelectorAll('#tbl-monitor th.sortable .sort-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        onSortClick(btn.closest('th').dataset.sort);
+      });
+    });
+  }
+  function initTabs() {
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        $('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    initTabs();
+    initSortHeaders();
+    applySort();
+    renderMonitorTable();
+    renderTokensTable();
+    updateSortIndicators();
+    selectToken(tokenState[0].symbol);
+    tickMockUpdate();
+    setInterval(tickMockUpdate, 3000);
+  });
+})();
+  </script>
+</body>
+</html>

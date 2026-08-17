@@ -149,3 +149,86 @@ class ExplainController:
         if event.anomaly_type == AnomalyType.LEVERAGE_HEAT.value:
             return "OI/市值比偏高，杠杆密度大，波动易放大"
         return "已记录异常，请结合盘面进一步确认"
+
+    @staticmethod
+    def extract_conclusion(narrative: str) -> str:
+        if not narrative:
+            return "—"
+        for line in reversed(narrative.splitlines()):
+            stripped = line.strip()
+            if stripped.startswith("→"):
+                return stripped[1:].strip()
+        return narrative.splitlines()[0].strip() if narrative else "—"
+
+    def summarize_for_display(
+        self,
+        latest,
+        change_15m: float | None,
+        oi_change_30m: float | None,
+        onchain_events: list[OnchainEvent] | None = None,
+    ) -> tuple[str, str]:
+        """为监控表格生成结论与完整归因（无需已入库的 anomaly 事件）。"""
+        onchain_events = onchain_events or []
+        tags: list[str] = []
+        m = latest
+
+        if change_15m is not None:
+            if change_15m >= float(self.cfg.get("surge_pct", 0.08)):
+                tags.extend(self._deriv_tags(AnomalyType.SURGE.value, m, oi_change_30m))
+            elif change_15m <= -float(self.cfg.get("dump_pct", 0.08)):
+                tags.extend(self._deriv_tags(AnomalyType.DUMP.value, m, oi_change_30m))
+
+        if m.oi_mcap_ratio and m.oi_mcap_ratio >= float(self.cfg.get("oi_mcap_ratio_warn", 0.2)):
+            tags.append("high_leverage")
+
+        unlocks = self.repo.load_unlocks_near(latest.symbol, latest.ts)
+        for _unlock in unlocks:
+            tags.append("unlock_sell_pressure")
+
+        chain_notes: list[str] = []
+        for oc in onchain_events:
+            if oc.event_type == "CEX_DEPOSIT" and oc.label in (
+                "team_treasury",
+                "team",
+                "team_or_vesting",
+            ):
+                tags.append("team_dump")
+                chain_notes.append(
+                    f"团队/金库地址向 CEX 充值 {oc.amount:.2f} ({oc.chain})"
+                )
+            elif oc.event_type == "UNLOCK_TRANSFER":
+                tags.append("unlock_onchain")
+                chain_notes.append(f"解锁相关地址转出 {oc.amount:.2f}")
+            elif oc.event_type == "CEX_DEPOSIT":
+                tags.append("spot_sell_pressure")
+                chain_notes.append(f"大额充值 CEX {oc.amount:.2f}")
+
+        tags = list(dict.fromkeys(tags))
+
+        if change_15m is not None and change_15m >= float(self.cfg.get("surge_pct", 0.08)):
+            anomaly_type = AnomalyType.SURGE.value
+        elif change_15m is not None and change_15m <= -float(self.cfg.get("dump_pct", 0.08)):
+            anomaly_type = AnomalyType.DUMP.value
+        elif m.oi_mcap_ratio and m.oi_mcap_ratio >= float(
+            self.cfg.get("oi_mcap_ratio_warn", 0.2)
+        ):
+            anomaly_type = AnomalyType.LEVERAGE_HEAT.value
+        else:
+            anomaly_type = AnomalyType.SURGE.value
+
+        event = AnomalyEvent(
+            detected_ts=latest.ts,
+            symbol=latest.symbol,
+            anomaly_type=anomaly_type,
+            severity="LOW",
+            change_15m=change_15m or 0.0,
+            metrics=latest,
+            oi_change_30m=oi_change_30m,
+            tags=tags,
+        )
+        event.tags = tags
+        conclusion = self._summary_line(event)
+        if conclusion == "已记录异常，请结合盘面进一步确认" and not tags:
+            conclusion = "暂无明显异常结构，持续监控中"
+        narrative = self._build_narrative(event, chain_notes, unlocks)
+        return conclusion, narrative

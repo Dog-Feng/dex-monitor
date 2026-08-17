@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS metrics (
     funding_rate REAL NOT NULL,
     whale_long_short_ratio REAL,
     market_cap REAL,
-    oi_mcap_ratio REAL
+    oi_mcap_ratio REAL,
+    funding_interval_hours INTEGER DEFAULT 8
 );
 CREATE INDEX IF NOT EXISTS idx_metrics_symbol_ts ON metrics(symbol, ts);
 
@@ -111,4 +112,13 @@ def connect(db_path: str | Path) -> sqlite3.Connection:
 
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
+    _migrate(conn)
     conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(metrics)")}
+    if "funding_interval_hours" not in cols:
+        conn.execute(
+            "ALTER TABLE metrics ADD COLUMN funding_interval_hours INTEGER DEFAULT 8"
+        )

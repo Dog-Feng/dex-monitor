@@ -86,8 +86,9 @@ class Repository:
             """
             INSERT INTO metrics (
                 ts, symbol, price, volume_5m, oi, funding_rate,
-                whale_long_short_ratio, market_cap, oi_mcap_ratio
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                whale_long_short_ratio, market_cap, oi_mcap_ratio,
+                funding_interval_hours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 snapshot.ts,
@@ -99,6 +100,7 @@ class Repository:
                 snapshot.whale_long_short_ratio,
                 snapshot.market_cap,
                 snapshot.oi_mcap_ratio,
+                snapshot.funding_interval_hours,
             ),
         )
         self.conn.commit()
@@ -305,12 +307,44 @@ class Repository:
                 FROM metrics
                 GROUP BY symbol
             ) t ON m.symbol = t.symbol AND m.ts = t.max_ts
-            ORDER BY m.ts DESC
+            ORDER BY m.symbol ASC
             LIMIT ?
             """,
             (limit,),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def load_metric_near_ts(self, symbol: str, target_ts: int) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            SELECT * FROM metrics
+            WHERE symbol = ? AND ts <= ?
+            ORDER BY ts DESC
+            LIMIT 1
+            """,
+            (symbol, target_ts),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def load_latest_anomaly_for_symbol(
+        self, symbol: str, since_ts: int
+    ) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            SELECT * FROM anomaly_events
+            WHERE symbol = ? AND detected_ts >= ?
+            ORDER BY detected_ts DESC
+            LIMIT 1
+            """,
+            (symbol, since_ts),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def load_symbol_base_map(self) -> dict[str, str]:
+        rows = self.conn.execute(
+            "SELECT symbol, base_asset FROM symbols WHERE enabled = 1"
+        ).fetchall()
+        return {row["symbol"]: row["base_asset"] for row in rows}
 
     def record_alert(self, symbol: str, anomaly_type: str, sent_ts: int) -> None:
         self.conn.execute(
@@ -417,6 +451,12 @@ def _row_to_symbol(row: sqlite3.Row) -> SymbolConfig:
 
 
 def _row_to_metric(row: sqlite3.Row) -> MetricSnapshot:
+    keys = row.keys()
+    interval = (
+        int(row["funding_interval_hours"])
+        if "funding_interval_hours" in keys and row["funding_interval_hours"] is not None
+        else 8
+    )
     return MetricSnapshot(
         ts=row["ts"],
         symbol=row["symbol"],
@@ -427,6 +467,7 @@ def _row_to_metric(row: sqlite3.Row) -> MetricSnapshot:
         whale_long_short_ratio=row["whale_long_short_ratio"],
         market_cap=row["market_cap"],
         oi_mcap_ratio=row["oi_mcap_ratio"],
+        funding_interval_hours=interval,
     )
 
 

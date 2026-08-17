@@ -168,7 +168,10 @@ class PollController:
         oi = self.binance._fetch_open_interest(symbol)
         funding = self.binance._fetch_funding_rate(symbol)
         whale = self.binance._fetch_whale_ratio(symbol)
-        snapshots = self.binance.klines_to_snapshots(symbol, klines, oi, funding, whale)
+        interval_h = self.binance.get_funding_interval_hours(symbol)
+        snapshots = self.binance.klines_to_snapshots(
+            symbol, klines, oi, funding, whale, interval_h
+        )
         for snap in snapshots[:-1]:
             self.buffer.push(snap)
         if snapshots:

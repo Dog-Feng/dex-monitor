@@ -23,7 +23,7 @@
                    data/monitor.db
 ```
 
-- **单进程**：`python main.py` = poll + Web
+- **单进程**：`python main.py` = poll + Web（Web 使用 Waitress，适合生产轻量访问）
 - **看板 API 只读**：`/api/*` 仅查询 SQLite，无写接口
 - **公网访问**：配置 `web.host: 0.0.0.0`，防火墙放行端口
 
@@ -107,6 +107,7 @@ sudo -u tam .venv/bin/python main.py
 ```bash
 curl -s http://127.0.0.1:8089/api/health
 curl -s http://127.0.0.1:8089/api/overview
+curl -s http://127.0.0.1:8089/api/monitor-tokens | head -c 500
 ```
 
 浏览器：`http://<服务器公网IP>:8089`
@@ -229,6 +230,8 @@ sudo -u tam cp /opt/token-anomaly-monitor/data/monitor.db \
 ```
 
 建议 cron 每日备份 `data/monitor.db` 与 `config.yaml`。
+
+**重启说明**：`systemctl restart` 或升级后重启 **不会清空** SQLite 中的 metrics、异常事件、代币库；进程会从 `data/monitor.db` 恢复历史并继续 poll。勿删除或覆盖 `data/` 目录即可保留数据。
 
 ---
 

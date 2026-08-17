@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.models.entities import AnomalyEvent
+from app.models.entities import AnomalyEvent, AnomalyType
 
 
 class ConsoleView:
@@ -17,11 +17,13 @@ class ConsoleView:
             mcap_text = f" OI/MCap: {m.oi_mcap_ratio:.2f}"
         tags = ", ".join(event.tags) if event.tags else "-"
 
+        if event.anomaly_type == AnomalyType.LEVERAGE_HEAT.value:
+            headline = f"{event.symbol} | OI/MCap {m.oi_mcap_ratio:.2f} 杠杆过热"
+        else:
+            headline = f"{event.symbol} | {event.change_15m * 100:+.1f}% (15m)"
+
         print()
-        print(
-            f"[{ts}] {event.severity} | {event.anomaly_type} | "
-            f"{event.symbol} | {event.change_15m * 100:+.1f}% (15m)"
-        )
+        print(f"[{ts}] {event.severity} | {event.anomaly_type} | {headline}")
         print(
             f"{oi_text} Funding: {m.funding_rate * 100:.3f}%{mcap_text}".strip()
         )

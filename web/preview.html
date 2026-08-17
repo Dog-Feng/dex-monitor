@@ -51,6 +51,8 @@
               <col class="col-oi" />
               <col class="col-ratio" />
               <col class="col-whale" />
+              <col class="col-mcap" />
+              <col class="col-unlock-board" />
               <col />
             </colgroup>
             <thead>
@@ -73,6 +75,8 @@
                 <th>
                   <span class="th-tip" title="Binance 大户账户多空比 = 持多大户数 ÷ 持空大户数。&gt;1 表示大户偏多，&lt;1 表示大户偏空，=1 表示大致均衡。">大户多空比</span>
                 </th>
+                <th>流通市值</th>
+                <th>解锁看板</th>
                 <th class="col-conclusion">结论</th>
               </tr>
             </thead>
@@ -89,7 +93,7 @@
 
     <section id="tab-tokens" class="tab-panel">
       <div class="panel panel-table">
-        <div class="panel-title">token_metadata 持久化合约库 <span class="panel-meta">流通市值来自 poll；解锁详情可跳转 Tokenomist</span></div>
+        <div class="panel-title">token_metadata 持久化合约库</div>
         <div class="table-scroll">
           <table class="tbl-monitor tbl-tokens">
             <colgroup>
@@ -98,11 +102,7 @@
               <col class="tk-chain" />
               <col class="tk-contract" />
               <col class="tk-cg" />
-              <col class="tk-unlock-date" />
-              <col class="tk-unlock-pct" />
-              <col class="tk-mcap" />
               <col class="tk-updated" />
-              <col class="tk-link" />
             </colgroup>
             <thead>
               <tr>
@@ -111,11 +111,7 @@
                 <th>链</th>
                 <th>合约</th>
                 <th>CoinGecko</th>
-                <th>下次解锁</th>
-                <th>解锁占比</th>
-                <th>流通市值</th>
                 <th>更新</th>
-                <th></th>
               </tr>
             </thead>
             <tbody id="tokens-body"></tbody>

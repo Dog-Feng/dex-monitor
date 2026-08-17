@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 BINANCE_FAPI = "https://fapi.binance.com"
 DEFAULT_FUNDING_INTERVAL_HOURS = 8
+TRADFI_UNDERLYING_TYPES = frozenset({"EQUITY"})
+TRADFI_CONTRACT_TYPES = frozenset({"TRADIFI_PERPETUAL"})
 
 
 class BinanceFetcher:
@@ -23,6 +25,57 @@ class BinanceFetcher:
         self.session.headers.update({"User-Agent": "token-anomaly-monitor/0.1"})
         self._funding_interval_cache: dict[str, int] = {}
         self._funding_interval_fetched_at = 0.0
+        self._symbol_meta: dict[str, dict[str, Any]] = {}
+        self._symbol_meta_fetched_at = 0.0
+        self._ticker_24h_pct: dict[str, float] = {}
+
+    def refresh_symbol_meta(self, force: bool = False) -> None:
+        now = time.time()
+        if not force and self._symbol_meta and now - self._symbol_meta_fetched_at < 3600:
+            return
+        try:
+            data = self._get(f"{BINANCE_FAPI}/fapi/v1/exchangeInfo", {})
+            meta: dict[str, dict[str, Any]] = {}
+            for item in data.get("symbols", []):
+                symbol = item.get("symbol")
+                if symbol:
+                    meta[symbol] = item
+            self._symbol_meta = meta
+            self._symbol_meta_fetched_at = now
+        except Exception as exc:
+            logger.warning("Binance exchangeInfo fetch failed: %s", exc)
+
+    def is_tradfi_perpetual(self, symbol: str) -> bool:
+        """代币化股票 / TradFi 永续（如 TSLA、SPCX），非 crypto alt。"""
+        self.refresh_symbol_meta()
+        item = self._symbol_meta.get(symbol)
+        if not item:
+            return False
+        if item.get("underlyingType") in TRADFI_UNDERLYING_TYPES:
+            return True
+        if item.get("contractType") in TRADFI_CONTRACT_TYPES:
+            return True
+        return False
+
+    def refresh_ticker_24h(self, force: bool = False) -> dict[str, float]:
+        now = time.time()
+        if not force and self._ticker_24h_pct and now - getattr(self, "_ticker_24h_fetched_at", 0) < 120:
+            return self._ticker_24h_pct
+        mapping: dict[str, float] = {}
+        for row in self.fetch_tickers_24hr():
+            symbol = row.get("symbol")
+            if not symbol:
+                continue
+            try:
+                mapping[symbol] = float(row.get("priceChangePercent") or 0) / 100.0
+            except (TypeError, ValueError):
+                continue
+        self._ticker_24h_pct = mapping
+        self._ticker_24h_fetched_at = now
+        return mapping
+
+    def get_ticker_24h_change(self, symbol: str) -> float | None:
+        return self._ticker_24h_pct.get(symbol)
 
     def refresh_funding_intervals(self, force: bool = False) -> None:
         now = time.time()

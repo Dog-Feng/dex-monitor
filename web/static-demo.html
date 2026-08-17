@@ -75,7 +75,7 @@
     .panel-meta strong { color: var(--mut2); font-weight: 600; }
     .table-scroll { overflow-x: auto; padding: 0 8px 8px; }
     .tbl-monitor {
-      width: 100%; min-width: 1120px; border-collapse: collapse;
+      width: 100%; min-width: 1280px; border-collapse: collapse;
       table-layout: fixed; font-size: 13px;
     }
     .tbl-monitor col.col-sym { width: 96px; }
@@ -85,6 +85,8 @@
     .tbl-monitor col.col-oi { width: 80px; }
     .tbl-monitor col.col-ratio { width: 96px; }
     .tbl-monitor col.col-whale { width: 100px; }
+    .tbl-monitor col.col-mcap { width: 88px; }
+    .tbl-monitor col.col-unlock-board { width: 80px; }
     .tbl-monitor th, .tbl-monitor td {
       padding: 11px 8px; border-bottom: 1px solid var(--border);
       vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -121,24 +123,21 @@
     th.sortable.sorted .sort-icon { opacity: 1; color: var(--pur); }
     .narrative-box { white-space: pre-wrap; font-size: 13px; color: var(--mut2); line-height: 1.65; min-height: 72px; padding: 4px 2px; }
     .detail-panel { margin-top: 14px; }
-    .tbl-tokens { min-width: 1040px; font-size: 13px; }
+    .tbl-tokens { min-width: 720px; font-size: 13px; }
     .tbl-tokens col.tk-base { width: 72px; }
     .tbl-tokens col.tk-symbol { width: 108px; }
     .tbl-tokens col.tk-chain { width: 56px; }
     .tbl-tokens col.tk-contract { width: 168px; }
-    .tbl-tokens col.tk-cg { width: 120px; }
-    .tbl-tokens col.tk-unlock-date { width: 88px; }
-    .tbl-tokens col.tk-unlock-pct { width: 72px; }
-    .tbl-tokens col.tk-mcap { width: 88px; }
+    .tbl-tokens col.tk-cg { width: 140px; }
     .tbl-tokens col.tk-updated { width: 96px; }
-    .tbl-tokens col.tk-link { width: 56px; }
-    .tbl-tokens .tk-ext-link {
+    .tk-ext-link {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 44px; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;
       color: var(--pur); background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.25);
       text-decoration: none; white-space: nowrap;
     }
-    .tbl-tokens .tk-ext-link:hover { background: rgba(139, 92, 246, 0.18); color: var(--txt); }
+    .tk-ext-link:hover { background: rgba(139, 92, 246, 0.18); color: var(--txt); }
+    .tbl-monitor .tk-link-cell { text-align: center; padding: 6px 4px; }
     .tbl-tokens .contract { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; color: var(--mut2); }
     .cell-flash-up { animation: flashUp 0.7s ease; }
     .cell-flash-down { animation: flashDown 0.7s ease; }
@@ -182,7 +181,8 @@
           <table class="tbl-monitor" id="tbl-monitor">
             <colgroup>
               <col class="col-sym" /><col class="col-price" /><col class="col-pct" /><col class="col-pct" />
-              <col class="col-fund" /><col class="col-oi" /><col class="col-ratio" /><col class="col-whale" /><col />
+              <col class="col-fund" /><col class="col-oi" /><col class="col-ratio" /><col class="col-whale" />
+              <col class="col-mcap" /><col class="col-unlock-board" /><col />
             </colgroup>
             <thead>
               <tr>
@@ -204,6 +204,8 @@
                 <th>
                   <span class="th-tip" title="Binance 大户账户多空比 = 持多大户数 ÷ 持空大户数。>1 表示大户偏多，<1 表示大户偏空，=1 表示大致均衡。">大户多空比</span>
                 </th>
+                <th>流通市值</th>
+                <th>解锁看板</th>
                 <th class="col-conclusion">结论</th>
               </tr>
             </thead>
@@ -219,14 +221,12 @@
 
     <section id="tab-tokens" class="tab-panel">
       <div class="panel panel-table">
-        <div class="panel-title">token_metadata 持久化合约库 <span class="panel-meta">流通市值来自 poll；解锁详情可跳转 Tokenomist</span></div>
+        <div class="panel-title">token_metadata 持久化合约库</div>
         <div class="table-scroll">
           <table class="tbl-monitor tbl-tokens">
             <colgroup>
               <col class="tk-base" /><col class="tk-symbol" /><col class="tk-chain" />
-              <col class="tk-contract" /><col class="tk-cg" />
-              <col class="tk-unlock-date" /><col class="tk-unlock-pct" /><col class="tk-mcap" />
-              <col class="tk-updated" /><col class="tk-link" />
+              <col class="tk-contract" /><col class="tk-cg" /><col class="tk-updated" />
             </colgroup>
             <thead>
               <tr>
@@ -235,11 +235,7 @@
                 <th>链</th>
                 <th>合约</th>
                 <th>CoinGecko</th>
-                <th>下次解锁</th>
-                <th>解锁占比</th>
-                <th>流通市值</th>
                 <th>更新</th>
-                <th></th>
               </tr>
             </thead>
             <tbody id="tokens-body"></tbody>
@@ -252,16 +248,16 @@
   <script>
 (function () {
   var MOCK_TOKENS = [
-    { symbol: 'GPSUSDT', base: 'GPS', price: 0.01234, change_24h: 12.6, change_15m: -3.52, funding_rate: -0.000068, funding_interval_hours: 8, oi: 12500000, oi_mcap_ratio: 0.251, whale_ls: 1.85, conclusion: '解锁窗口内，供应冲击风险偏高', narrative: 'GPS 15m -3.5% | OI 30m: 0.0% | Funding: -0.007% | OI/MCap: 0.25\n链上: 窗口内无显著充值/转出\n→ 解锁窗口内，供应冲击风险偏高' },
-    { symbol: 'PORTALUSDT', base: 'PORTAL', price: 0.0892, change_24h: 18.4, change_15m: 11.25, funding_rate: 0.000512, funding_interval_hours: 4, oi: 8200000, oi_mcap_ratio: 0.182, whale_ls: 2.14, conclusion: '价涨+OI升+正费率，主动拉盘追多', narrative: 'PORTAL 15m +11.2% | OI 30m +6.2% | Funding: +0.051%\n→ 价涨+OI升+正费率，主动拉盘追多' },
-    { symbol: 'ACEUSDT', base: 'ACE', price: 1.245, change_24h: -15.2, change_15m: -9.18, funding_rate: 0.000891, funding_interval_hours: 8, oi: 3100000, oi_mcap_ratio: 0.328, whale_ls: 0.92, conclusion: '价跌+OI降，多头清算为主', narrative: 'ACE 15m -9.2% | OI 30m -7.5% | Funding: +0.089%\n→ 价跌+OI降，多头清算为主' },
-    { symbol: 'VELVETUSDT', base: 'VELVET', price: 0.00341, change_24h: -28.5, change_15m: 2.08, funding_rate: -0.001842, funding_interval_hours: 1, oi: 22000000, oi_mcap_ratio: 0.412, whale_ls: 1.12, conclusion: '高位极端负费率，空头极度拥挤，警惕轧空或反转', narrative: 'VELVET 15m +2.1% | 费率 -0.184% 极端负值\n→ 高位极端负费率，空头极度拥挤' },
-    { symbol: 'CAKEUSDT', base: 'CAKE', price: 2.156, change_24h: 4.2, change_15m: 0.65, funding_rate: 0.000102, funding_interval_hours: 8, oi: 45000000, oi_mcap_ratio: 0.088, whale_ls: 1.05, conclusion: '暂无明显异常结构，持续监控中', narrative: 'CAKE 暂无明显异常结构，持续监控中。' },
+    { symbol: 'GPSUSDT', base: 'GPS', price: 0.01234, change_24h: 12.6, change_15m: -3.52, funding_rate: -0.000068, funding_interval_hours: 8, oi: 12500000, oi_mcap_ratio: 0.251, whale_ls: 1.85, market_cap_display: '$12.50M', tokenomist: 'https://tokenomist.ai/gps-ecosystem', conclusion: '解锁窗口内，供应冲击风险偏高', narrative: 'GPS 15m -3.5% | OI 30m: 0.0% | Funding: -0.007% | OI/MCap: 0.25\n链上: 窗口内无显著充值/转出\n→ 解锁窗口内，供应冲击风险偏高' },
+    { symbol: 'PORTALUSDT', base: 'PORTAL', price: 0.0892, change_24h: 18.4, change_15m: 11.25, funding_rate: 0.000512, funding_interval_hours: 4, oi: 8200000, oi_mcap_ratio: 0.182, whale_ls: 2.14, market_cap_display: '$45.20M', tokenomist: 'https://tokenomist.ai/portal-2', conclusion: '价涨+OI升+正费率，主动拉盘追多', narrative: 'PORTAL 15m +11.2% | OI 30m +6.2% | Funding: +0.051%\n→ 价涨+OI升+正费率，主动拉盘追多' },
+    { symbol: 'ACEUSDT', base: 'ACE', price: 1.245, change_24h: -15.2, change_15m: -9.18, funding_rate: 0.000891, funding_interval_hours: 8, oi: 3100000, oi_mcap_ratio: 0.328, whale_ls: 0.92, market_cap_display: '$28.00M', tokenomist: 'https://tokenomist.ai/ace', conclusion: '价跌+OI降，多头清算为主', narrative: 'ACE 15m -9.2% | OI 30m -7.5% | Funding: +0.089%\n→ 价跌+OI降，多头清算为主' },
+    { symbol: 'VELVETUSDT', base: 'VELVET', price: 0.00341, change_24h: -28.5, change_15m: 2.08, funding_rate: -0.001842, funding_interval_hours: 1, oi: 22000000, oi_mcap_ratio: 0.412, whale_ls: 1.12, market_cap_display: '$8.50M', tokenomist: 'https://tokenomist.ai/velvet', conclusion: '高位极端负费率，空头极度拥挤，警惕轧空或反转', narrative: 'VELVET 15m +2.1% | 费率 -0.184% 极端负值\n→ 高位极端负费率，空头极度拥挤' },
+    { symbol: 'CAKEUSDT', base: 'CAKE', price: 2.156, change_24h: 4.2, change_15m: 0.65, funding_rate: 0.000102, funding_interval_hours: 8, oi: 45000000, oi_mcap_ratio: 0.088, whale_ls: 1.05, market_cap_display: '$510.00M', tokenomist: 'https://tokenomist.ai/pancakeswap-token', conclusion: '暂无明显异常结构，持续监控中', narrative: 'CAKE 暂无明显异常结构，持续监控中。' },
   ];
   var MOCK_METADATA = [
-    { base: 'GPS', symbol: 'GPSUSDT', chain: 'bsc', contract: '0x4a220e6096a25adb0e783b1a8e8c2a8893b6b9f8', cg: 'gps-ecosystem', unlock_date: '2026-08-20', unlock_pct: '2.50%', mcap: '$12.50M', updated: '2026-08-17 15:20', tokenomist: 'https://tokenomist.ai/gps-ecosystem' },
-    { base: 'PORTAL', symbol: 'PORTALUSDT', chain: 'bsc', contract: '0x1bbe973bef3a40fc36f880eb7123073090ecef0', cg: 'portal-2', unlock_date: '—', unlock_pct: '—', mcap: '$45.20M', updated: '2026-08-17 15:18', tokenomist: 'https://tokenomist.ai/portal-2' },
-    { base: 'SOSO', symbol: 'SOSOUSDT', chain: 'eth', contract: '0x76a0fcea2d', cg: 'sosovalue', unlock_date: '2026-08-24', unlock_pct: '—', mcap: '$111.07M', updated: '2026-08-17 14:02', tokenomist: 'https://tokenomist.ai/sosovalue' },
+    { base: 'GPS', symbol: 'GPSUSDT', chain: 'bsc', contract: '0x4a220e6096a25adb0e783b1a8e8c2a8893b6b9f8', cg: 'gps-ecosystem', updated: '2026-08-17 15:20' },
+    { base: 'PORTAL', symbol: 'PORTALUSDT', chain: 'bsc', contract: '0x1bbe973bef3a40fc36f880eb7123073090ecef0', cg: 'portal-2', updated: '2026-08-17 15:18' },
+    { base: 'SOSO', symbol: 'SOSOUSDT', chain: 'eth', contract: '0x76a0fcea2d', cg: 'sosovalue', updated: '2026-08-17 14:02' },
   ];
   var selectedSymbol = null;
   var tokenState = JSON.parse(JSON.stringify(MOCK_TOKENS));
@@ -326,6 +322,9 @@
   }
   function renderRow(t) {
     var sel = selectedSymbol === t.symbol ? ' selected' : '';
+    var link = t.tokenomist
+      ? '<a class="tk-ext-link" href="' + t.tokenomist + '" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看解锁看板" onclick="event.stopPropagation()">解锁 ↗</a>'
+      : '—';
     return '<tr data-symbol="' + t.symbol + '" class="' + sel + '">' +
       '<td data-field="base">' + t.base + '</td>' +
       '<td class="num" data-field="price">' + fmtNum(t.price) + '</td>' +
@@ -335,6 +334,8 @@
       '<td class="num" data-field="oi">' + fmtNum(t.oi) + '</td>' +
       '<td class="num" data-field="oi_mcap_ratio">' + Number(t.oi_mcap_ratio).toFixed(3) + '</td>' +
       '<td class="num" data-field="whale_ls">' + Number(t.whale_ls).toFixed(2) + '</td>' +
+      '<td class="num" data-field="market_cap">' + (t.market_cap_display || '—') + '</td>' +
+      '<td class="tk-link-cell" data-field="unlock_board">' + link + '</td>' +
       '<td class="cell-conclusion" data-field="conclusion">' + getConclusion(t) + '</td></tr>';
   }
   function renderMonitorTable() {
@@ -414,14 +415,9 @@
   }
   function renderTokensTable() {
     $('tokens-body').innerHTML = MOCK_METADATA.map(function (m) {
-      var link = m.tokenomist
-        ? '<a class="tk-ext-link" href="' + m.tokenomist + '" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看解锁日程">解锁 ↗</a>'
-        : '—';
       return '<tr><td>' + m.base + '</td><td>' + m.symbol + '</td>' +
         '<td>' + m.chain + '</td><td class="contract" title="' + m.contract + '">' + shortAddr(m.contract) + '</td>' +
-        '<td>' + m.cg + '</td><td class="num">' + m.unlock_date + '</td><td class="num">' + m.unlock_pct + '</td>' +
-        '<td class="num">' + m.mcap + '</td><td class="num">' + m.updated.slice(5, 16) + '</td>' +
-        '<td class="tk-link-cell">' + link + '</td></tr>';
+        '<td>' + m.cg + '</td><td class="num">' + m.updated.slice(5, 16) + '</td></tr>';
     }).join('');
   }
   function initSortHeaders() {

@@ -66,9 +66,13 @@ class SymbolDiscovery:
         return self._cache
 
     def _discover_from_binance(self) -> list[SymbolConfig]:
+        self.binance.refresh_symbol_meta()
+        exclude_tradfi = bool(self.cfg.get("exclude_tradfi", True))
         tickers = self.binance.fetch_tickers_24hr()
         if not tickers:
             return []
+
+        self.binance.refresh_ticker_24h(force=True)
 
         min_volume = float(self.cfg.get("min_quote_volume_usdt", 5_000_000))
         exclude = set(self.cfg.get("exclude_symbols") or []) | DEFAULT_EXCLUDE
@@ -78,16 +82,20 @@ class SymbolDiscovery:
         bars_15m = int(self.cfg.get("bars_15m", 3))
 
         candidates: list[dict[str, Any]] = []
+        skipped_tradfi = 0
         for row in tickers:
             symbol = row.get("symbol", "")
             if not symbol.endswith("USDT"):
                 continue
             if symbol in exclude:
                 continue
+            if exclude_tradfi and self.binance.is_tradfi_perpetual(symbol):
+                skipped_tradfi += 1
+                continue
             quote_volume = float(row.get("quoteVolume") or 0)
             if quote_volume < min_volume:
                 continue
-            change_24h = float(row.get("priceChangePercent") or 0)
+            change_24h = float(row.get("priceChangePercent") or 0) / 100.0
             candidates.append(
                 {
                     "symbol": symbol,
@@ -96,6 +104,9 @@ class SymbolDiscovery:
                     "last_price": float(row.get("lastPrice") or 0),
                 }
             )
+
+        if skipped_tradfi:
+            logger.info("Discovery skipped %s TradFi/tokenized stock perpetuals", skipped_tradfi)
 
         if not candidates:
             return []

@@ -16,7 +16,15 @@ def build_monitor_tokens(
 ) -> list[dict[str, Any]]:
     explain = ExplainController(detection_cfg, repo)
     base_map = repo.load_symbol_base_map()
-    rows = repo.load_latest_metrics_snapshot(limit)
+    meta_by_symbol = {m.symbol: m for m in repo.load_all_token_metadata(500)}
+    ticker24h: dict[str, float] = {}
+    raw_ticker = repo.get_scan_state("ticker24h")
+    if raw_ticker:
+        try:
+            ticker24h = json.loads(raw_ticker)
+        except json.JSONDecodeError:
+            ticker24h = {}
+    rows = repo.load_latest_metrics_snapshot(limit, enabled_only=True)
     now = int(time.time())
     since_recent = now - 6 * 3600
     result: list[dict[str, Any]] = []
@@ -32,6 +40,8 @@ def build_monitor_tokens(
 
         change_15m = _pct_change(latest_price, m15["price"] if m15 else None)
         change_24h = _pct_change(latest_price, m24["price"] if m24 else None)
+        if change_24h is None and symbol in ticker24h:
+            change_24h = ticker24h[symbol]
         oi_change_30m = _pct_change(row["oi"], m30["oi"] if m30 else None)
 
         funding_interval = 8
@@ -49,6 +59,9 @@ def build_monitor_tokens(
             )
 
         base = base_map.get(symbol) or symbol.replace("USDT", "")
+        meta = meta_by_symbol.get(symbol)
+        coingecko_id = meta.coingecko_id if meta else None
+        mcap = row.get("market_cap")
 
         result.append(
             {
@@ -66,6 +79,10 @@ def build_monitor_tokens(
                 "oi": row["oi"],
                 "oi_mcap_ratio": row["oi_mcap_ratio"],
                 "whale_long_short_ratio": row["whale_long_short_ratio"],
+                "market_cap": mcap,
+                "market_cap_display": _fmt_mcap(mcap),
+                "coingecko_id": coingecko_id,
+                "tokenomist_url": _tokenomist_url(coingecko_id, base),
                 "conclusion": conclusion,
                 "narrative": narrative,
             }

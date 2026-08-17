@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 from pathlib import Path
@@ -60,7 +61,7 @@ class PollController:
     def bootstrap(self) -> None:
         # 启动阶段跳过 CoinGecko 解析，避免限流阻塞 Web 看板就绪
         symbols = self._resolve_active_symbols(enrich_metadata=False)
-        self.repo.sync_symbols(symbols)
+        self.repo.sync_active_symbols(symbols)
         for sym in symbols:
             if sym.enabled:
                 history = self.repo.load_recent_metrics(sym.symbol)
@@ -89,7 +90,13 @@ class PollController:
             logger.warning("No symbols to monitor (check discovery or static watchlist)")
             return
 
-        self.repo.sync_symbols(symbols)
+        self.repo.sync_active_symbols(symbols)
+
+        self.binance.refresh_ticker_24h(force=False)
+        self.repo.set_scan_state(
+            "ticker24h",
+            json.dumps(self.binance._ticker_24h_pct, ensure_ascii=False),
+        )
 
         for sym in symbols:
             self._ensure_history(sym.symbol)
@@ -188,8 +195,13 @@ class PollController:
         )
         for snap in snapshots[:-1]:
             self.buffer.push(snap)
+            if not self.repo.metric_exists(symbol, snap.ts):
+                self.repo.insert_metrics(snap)
         if snapshots:
-            self.buffer.push(snapshots[-1])
+            last = snapshots[-1]
+            self.buffer.push(last)
+            if not self.repo.metric_exists(symbol, last.ts):
+                self.repo.insert_metrics(last)
 
     def _apply_market_cap(self, sym: SymbolConfig, snapshot: MetricSnapshot) -> None:
         if snapshot.market_cap:

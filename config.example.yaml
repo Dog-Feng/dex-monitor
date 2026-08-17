@@ -12,6 +12,7 @@ discovery:
   min_change_15m: 0.03     # 15m 涨跌幅阈值，|change| >= 3% 才进入分析
   bars_15m: 3
   fallback_top_n: 15
+  exclude_tradfi: true   # 剔除 Binance TradFi 代币化股票永续（underlyingType=EQUITY）
   refresh_interval_seconds: 300
   exclude_symbols:
     - BTCUSDT

@@ -43,6 +43,26 @@ class Repository:
             )
         self.conn.commit()
 
+    def sync_active_symbols(self, symbols: list[SymbolConfig]) -> None:
+        """同步当前分析列表，并将不在列表中的 symbol 设为 disabled。"""
+        if not symbols:
+            return
+        active = {sym.symbol for sym in symbols}
+        self.sync_symbols(symbols)
+        placeholders = ",".join("?" * len(active))
+        self.conn.execute(
+            f"UPDATE symbols SET enabled = 0 WHERE symbol NOT IN ({placeholders})",
+            list(active),
+        )
+        self.conn.commit()
+
+    def metric_exists(self, symbol: str, ts: int) -> bool:
+        row = self.conn.execute(
+            "SELECT 1 FROM metrics WHERE symbol = ? AND ts = ? LIMIT 1",
+            (symbol, ts),
+        ).fetchone()
+        return row is not None
+
     def load_enabled_symbols(self) -> list[SymbolConfig]:
         rows = self.conn.execute(
             "SELECT * FROM symbols WHERE enabled = 1 ORDER BY symbol"
@@ -328,9 +348,10 @@ class Repository:
             return None
         return int(row["ts"])
 
-    def load_latest_metrics_snapshot(self, limit: int = 60) -> list[dict[str, Any]]:
-        rows = self.conn.execute(
-            """
+    def load_latest_metrics_snapshot(
+        self, limit: int = 60, enabled_only: bool = False
+    ) -> list[dict[str, Any]]:
+        sql = """
             SELECT m.*
             FROM metrics m
             INNER JOIN (
@@ -338,11 +359,15 @@ class Repository:
                 FROM metrics
                 GROUP BY symbol
             ) t ON m.symbol = t.symbol AND m.ts = t.max_ts
-            ORDER BY m.symbol ASC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        """
+        params: list[Any] = []
+        if enabled_only:
+            sql += """
+            INNER JOIN symbols s ON m.symbol = s.symbol AND s.enabled = 1
+            """
+        sql += " ORDER BY m.symbol ASC LIMIT ?"
+        params.append(limit)
+        rows = self.conn.execute(sql, params).fetchall()
         return [dict(row) for row in rows]
 
     def load_metric_near_ts(self, symbol: str, target_ts: int) -> dict[str, Any] | None:

@@ -12,6 +12,8 @@ const MOCK_TOKENS = [
     oi: 12_500_000,
     oi_mcap_ratio: 0.251,
     whale_ls: 1.85,
+    market_cap_display: '$12.50M',
+    tokenomist: 'https://tokenomist.ai/gps-ecosystem',
     conclusion: '解锁窗口内，供应冲击风险偏高',
     narrative:
       'GPS 15m -3.5% | OI 30m: 0.0% | Funding: -0.007% | OI/MCap: 0.25\nTags: high_leverage, unlock_sell_pressure\n链上: 窗口内无显著充值/转出\n→ 解锁窗口内，供应冲击风险偏高',
@@ -27,6 +29,8 @@ const MOCK_TOKENS = [
     oi: 8_200_000,
     oi_mcap_ratio: 0.182,
     whale_ls: 2.14,
+    market_cap_display: '$45.20M',
+    tokenomist: 'https://tokenomist.ai/portal-2',
     conclusion: '价涨+OI升+正费率，主动拉盘追多',
     narrative:
       'PORTAL 15m +11.2% | OI 30m +6.2% | Funding: +0.051%\n→ 价涨+OI升+正费率，主动拉盘追多',
@@ -42,6 +46,8 @@ const MOCK_TOKENS = [
     oi: 3_100_000,
     oi_mcap_ratio: 0.328,
     whale_ls: 0.92,
+    market_cap_display: '$28.00M',
+    tokenomist: 'https://tokenomist.ai/ace',
     conclusion: '价跌+OI降，多头清算为主',
     narrative:
       'ACE 15m -9.2% | OI 30m -7.5% | Funding: +0.089%\n→ 价跌+OI降，多头清算为主',
@@ -57,6 +63,8 @@ const MOCK_TOKENS = [
     oi: 22_000_000,
     oi_mcap_ratio: 0.412,
     whale_ls: 1.12,
+    market_cap_display: '$8.50M',
+    tokenomist: 'https://tokenomist.ai/velvet',
     conclusion: '高位极端负费率，空头极度拥挤，警惕轧空或反转',
     narrative:
       'VELVET 15m +2.1% | 费率 -0.184% 极端负值\n→ 高位极端负费率，空头极度拥挤',
@@ -72,6 +80,8 @@ const MOCK_TOKENS = [
     oi: 45_000_000,
     oi_mcap_ratio: 0.088,
     whale_ls: 1.05,
+    market_cap_display: '$510.00M',
+    tokenomist: 'https://tokenomist.ai/pancakeswap-token',
     conclusion: '暂无明显异常结构，持续监控中',
     narrative: 'CAKE 暂无明显异常结构，持续监控中。',
   },
@@ -84,11 +94,7 @@ const MOCK_METADATA = [
     chain: 'bsc',
     contract: '0x4a220e6096a25adb0e783b1a8e8c2a8893b6b9f8',
     cg: 'gps-ecosystem',
-    unlock_date: '2026-08-20',
-    unlock_pct: '2.50%',
-    mcap: '$12.50M',
     updated: '2026-08-17 15:20',
-    tokenomist: 'https://tokenomist.ai/gps-ecosystem',
   },
   {
     base: 'PORTAL',
@@ -96,11 +102,7 @@ const MOCK_METADATA = [
     chain: 'bsc',
     contract: '0x1bbe973bef3a40fc36f880eb7123073090ecef0',
     cg: 'portal-2',
-    unlock_date: '—',
-    unlock_pct: '—',
-    mcap: '$45.20M',
     updated: '2026-08-17 15:18',
-    tokenomist: 'https://tokenomist.ai/portal-2',
   },
   {
     base: 'SOSO',
@@ -108,11 +110,7 @@ const MOCK_METADATA = [
     chain: 'eth',
     contract: '0x76a0fcea2d',
     cg: 'sosovalue',
-    unlock_date: '2026-08-24',
-    unlock_pct: '—',
-    mcap: '$111.07M',
     updated: '2026-08-17 14:02',
-    tokenomist: 'https://tokenomist.ai/sosovalue',
   },
 ];
 
@@ -206,6 +204,9 @@ function onSortClick(field) {
 
 function renderRow(t) {
   const sel = selectedSymbol === t.symbol ? ' selected' : '';
+  const linkCell = t.tokenomist
+    ? `<a class="tk-ext-link" href="${t.tokenomist}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看解锁看板" onclick="event.stopPropagation()">解锁 ↗</a>`
+    : '—';
   return `<tr data-symbol="${t.symbol}" class="${sel}">
     <td data-field="base">${t.base}</td>
     <td class="num" data-field="price">${fmtNum(t.price)}</td>
@@ -215,6 +216,8 @@ function renderRow(t) {
     <td class="num" data-field="oi">${fmtNum(t.oi)}</td>
     <td class="num" data-field="oi_mcap_ratio">${Number(t.oi_mcap_ratio).toFixed(3)}</td>
     <td class="num" data-field="whale_ls">${Number(t.whale_ls).toFixed(2)}</td>
+    <td class="num" data-field="market_cap">${t.market_cap_display || '—'}</td>
+    <td class="tk-link-cell" data-field="unlock_board">${linkCell}</td>
     <td class="cell-conclusion" data-field="conclusion">${getConclusion(t)}</td>
   </tr>`;
 }
@@ -314,11 +317,7 @@ function renderTokensTable() {
       <td>${m.chain}</td>
       <td class="contract" title="${m.contract}">${shortAddr(m.contract)}</td>
       <td>${m.cg}</td>
-      <td class="num">${m.unlock_date}</td>
-      <td class="num">${m.unlock_pct}</td>
-      <td class="num">${m.mcap}</td>
       <td class="num">${m.updated.slice(5, 16)}</td>
-      <td class="tk-link-cell"><a class="tk-ext-link" href="${m.tokenomist}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看解锁日程">解锁 ↗</a></td>
     </tr>`,
   ).join('');
 }

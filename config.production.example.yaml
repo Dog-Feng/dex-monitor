@@ -13,6 +13,7 @@ discovery:
   min_change_15m: 0.03
   bars_15m: 3
   fallback_top_n: 15
+  exclude_tradfi: true
   refresh_interval_seconds: 300
   exclude_symbols:
     - BTCUSDT

@@ -117,16 +117,27 @@ def cmd_start(config_path: str) -> None:
     """默认启动：Web 看板 + 后台 poll。"""
     config = load_config(config_path)
     setup_logging(config)
-    poll = build_app(config)
-    poll.bootstrap()
-
     web_cfg = config.get("web", {})
     port = int(web_cfg.get("port", 8089))
+    host = web_cfg.get("host", "127.0.0.1")
+
+    # 先启动 Web，避免 bootstrap 中 CoinGecko 限流阻塞看板
     start_web_server_background(config)
 
     log = logging.getLogger(__name__)
+    log.info("Web 看板已启动 http://%s:%s", host, port)
+    if host in ("127.0.0.1", "localhost"):
+        log.warning(
+            "web.host=%s 仅本机可访问；公网部署请改为 0.0.0.0 并放行端口 %s",
+            host,
+            port,
+        )
+
+    poll = build_app(config)
+    log.info("正在初始化监控列表与历史数据…")
+    poll.bootstrap()
+
     log.info("代币异常监控系统已启动")
-    log.info("看板地址 http://%s:%s", web_cfg.get("host", "127.0.0.1"), port)
     log.info("采集轮询已开启，Ctrl+C 退出")
     poll.run_forever()
 

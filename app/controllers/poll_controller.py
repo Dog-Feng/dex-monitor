@@ -58,7 +58,8 @@ class PollController:
         self._seeded_symbols: set[str] = set()
 
     def bootstrap(self) -> None:
-        symbols = self._resolve_active_symbols()
+        # 启动阶段跳过 CoinGecko 解析，避免限流阻塞 Web 看板就绪
+        symbols = self._resolve_active_symbols(enrich_metadata=False)
         self.repo.sync_symbols(symbols)
         for sym in symbols:
             if sym.enabled:
@@ -151,15 +152,28 @@ class PollController:
         self._seed_history(symbol)
         self._seeded_symbols.add(symbol)
 
-    def _resolve_active_symbols(self) -> list[SymbolConfig]:
+    def _resolve_active_symbols(self, enrich_metadata: bool = True) -> list[SymbolConfig]:
         static = self._symbol_configs()
         if self.discovery:
             symbols = self.discovery.resolve(static)
         else:
             symbols = [s for s in static if s.enabled]
-        if self.metadata:
+        if enrich_metadata and self.metadata:
             symbols = self.metadata.enrich(symbols)
+        elif self.metadata:
+            symbols = [self._apply_cached_metadata(sym) for sym in symbols]
         return symbols
+
+    def _apply_cached_metadata(self, sym: SymbolConfig) -> SymbolConfig:
+        if sym.token_contract and sym.coingecko_id and sym.chain:
+            return sym
+        cached = self.repo.load_token_metadata(sym.base_asset)
+        if not cached:
+            return sym
+        sym.coingecko_id = sym.coingecko_id or cached.coingecko_id
+        sym.chain = sym.chain or cached.chain
+        sym.token_contract = sym.token_contract or cached.token_contract
+        return sym
 
     def _seed_history(self, symbol: str) -> None:
         klines = self.binance.fetch_klines(symbol, limit=288)

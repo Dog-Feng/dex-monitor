@@ -1,0 +1,12 @@
+{
+  "unlocks": [
+    {
+      "symbol": "ARBUSDT",
+      "unlock_ts": 1735689600,
+      "amount": 1000000,
+      "pct_circulating": 0.02,
+      "source": "manual",
+      "note": "示例解锁记录"
+    }
+  ]
+}

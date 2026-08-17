@@ -1,0 +1,82 @@
+# 复制为 config.yaml 后修改
+
+poll_interval_seconds: 60
+kline_interval: "5m"
+
+discovery:
+  enabled: true
+  mode: dynamic          # dynamic | static | hybrid
+  top_gainers: 25
+  top_losers: 25
+  min_quote_volume_usdt: 5000000
+  min_change_15m: 0.03     # 15m 涨跌幅阈值，|change| >= 3% 才进入分析
+  bars_15m: 3
+  fallback_top_n: 15
+  refresh_interval_seconds: 300
+  exclude_symbols:
+    - BTCUSDT
+    - ETHUSDT
+
+symbols: []
+  # hybrid 示例如下 — 可补充链上字段
+  # - symbol: ARBUSDT
+  #   base_asset: ARB
+  #   chain: arbitrum
+  #   token_contract: "0x912ce59144191c1204e64559fe8253a0e49e6548"
+  #   coingecko_id: arbitrum
+  #   enabled: true
+
+coingecko:
+  enabled: true
+  api_key: ""
+  chain_priority:
+    - binance-smart-chain
+    - base
+    - ethereum
+    - arbitrum-one
+  metadata_refresh_hours: 24
+  unlock_lookahead_days: 30
+
+detection:
+  surge_pct: 0.08
+  dump_pct: 0.08
+  vol_multiplier: 3.0
+  oi_drop_pct: 0.05
+  oi_rise_pct: 0.05
+  funding_positive_threshold: 0.0005
+  funding_extreme_positive: 0.001
+  funding_extreme_negative: -0.005
+  oi_mcap_ratio_warn: 0.2
+  oi_mcap_ratio_high: 0.3
+
+chain:
+  enabled: false
+  l1_interval_seconds: 300
+  l2_mode: lazy # lazy | always
+  min_transfer_usd: 10000
+  etherscan_api_key: ""
+  bscscan_api_key: ""
+  rpc:
+    ethereum: "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+    bsc: "https://bsc-dataseed.binance.org"
+
+alert:
+  cooldown_minutes: 30
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+sqlite:
+  path: data/monitor.db
+  metrics_retention_days: 30
+
+logging:
+  level: INFO
+  file: data/app.log
+
+web:
+  enabled: true
+  # 本地开发: 127.0.0.1 | Linux 公网无鉴权: 0.0.0.0（见 docs/DEPLOY.md）
+  host: 127.0.0.1
+  port: 8089

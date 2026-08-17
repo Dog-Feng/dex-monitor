@@ -1,0 +1,20 @@
+{
+  "wallets": [
+    {
+      "address": "0x0000000000000000000000000000000000000001",
+      "chain": "ethereum",
+      "label": "team_treasury",
+      "symbol": "EXAMPLE",
+      "tokens": ["0xTokenContractAddress"],
+      "note": "示例：替换为真实团队/金库地址"
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000002",
+      "chain": "ethereum",
+      "label": "vesting",
+      "symbol": "EXAMPLE",
+      "tokens": ["0xTokenContractAddress"],
+      "note": "示例：解锁/归属合约相关地址"
+    }
+  ]
+}

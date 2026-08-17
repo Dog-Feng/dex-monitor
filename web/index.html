@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>代币异常监控台</title>
+  <link rel="stylesheet" href="/css/console.css" />
+  <style>
+    .tag { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin: 1px 2px; background: var(--bg2); border: 1px solid var(--border2); color: var(--mut2); }
+    .tag.squeeze { color: var(--grn); border-color: #22c55e40; }
+    .tag.dump { color: var(--red); border-color: #ef444440; }
+    .narrative-box { white-space: pre-wrap; font-size: 12px; color: var(--mut2); line-height: 1.6; max-height: 200px; overflow: auto; }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .tbl th { text-align: left; color: var(--mut2); font-weight: 600; padding: 8px 6px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: .4px; }
+    .tbl td { padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .tbl tr:hover td { background: var(--panel2); cursor: pointer; }
+    .tbl tr.selected td { background: #8b5cf618; }
+    .up { color: var(--grn); }
+    .down { color: var(--red); }
+    .sev-HIGH { color: var(--red); font-weight: 700; }
+    .sev-MEDIUM { color: var(--yel); }
+    .contract { font-family: ui-monospace, monospace; font-size: 11px; color: var(--mut2); }
+    .detail-panel { min-height: 180px; }
+    .empty { color: var(--mut); text-align: center; padding: 24px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-logo">代币异常<span>监控台</span></div>
+    <div class="header-sep"></div>
+    <div class="ex-chips">
+      <span class="ex-chip"><i class="hdot" id="poll-dot"></i><span id="poll-label">监控</span></span>
+      <span class="ex-chip">Binance 永续</span>
+      <span class="ex-chip">BSC 优先</span>
+    </div>
+    <div class="header-right">
+      <span class="conn" id="conn-badge"><i class="hdot idle" id="conn-dot"></i><span id="conn-text">连接中</span></span>
+      <span class="clock" id="clock">—</span>
+    </div>
+  </header>
+
+  <nav class="main-tabs">
+    <button class="tab-btn active" data-tab="overview">总览</button>
+    <button class="tab-btn" data-tab="events">异常事件</button>
+    <button class="tab-btn" data-tab="metrics">实时指标</button>
+    <button class="tab-btn" data-tab="tokens">代币库</button>
+  </nav>
+
+  <main class="wrap">
+    <div class="static-banner" id="banner" hidden>
+      数据每 10 秒自动刷新；采集与看板已在同一进程运行。
+    </div>
+
+    <!-- 总览 -->
+    <section id="tab-overview" class="tab-panel active">
+      <div class="total-row">
+        <div class="total-card">
+          <div class="lbl">24h 异常</div>
+          <div class="val" id="ov-total">—</div>
+          <div class="sub">7 日 <span id="ov-7d">—</span></div>
+        </div>
+        <div class="total-card">
+          <div class="lbl">暴涨 SURGE</div>
+          <div class="val up" id="ov-surge">—</div>
+          <div class="sub">24 小时内</div>
+        </div>
+        <div class="total-card">
+          <div class="lbl">暴跌 DUMP</div>
+          <div class="val down" id="ov-dump">—</div>
+          <div class="sub">24 小时内</div>
+        </div>
+        <div class="total-card">
+          <div class="lbl">监控 / 代币库</div>
+          <div class="val" id="ov-symbols">—</div>
+          <div class="sub">已解析合约 <span id="ov-meta">—</span></div>
+        </div>
+      </div>
+
+      <div class="split-2">
+        <div class="panel">
+          <div class="panel-title">最近异常</div>
+          <table class="tbl" id="tbl-recent">
+            <thead><tr><th>时间</th><th>币种</th><th>类型</th><th>15m</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="panel detail-panel">
+          <div class="panel-title">事件详情</div>
+          <div id="event-detail" class="empty">点击左侧事件查看归因</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 异常事件 -->
+    <section id="tab-events" class="tab-panel">
+      <div class="panel">
+        <div class="panel-title">
+          <span>异常事件列表</span>
+          <select id="filter-days" style="font-size:11px;padding:4px 8px;background:var(--bg2);color:var(--txt);border:1px solid var(--border2);border-radius:6px;">
+            <option value="1">近 1 天</option>
+            <option value="3">近 3 天</option>
+            <option value="7" selected>近 7 天</option>
+            <option value="30">近 30 天</option>
+          </select>
+        </div>
+        <table class="tbl" id="tbl-events">
+          <thead>
+            <tr><th>时间</th><th>币种</th><th>严重</th><th>类型</th><th>15m</th><th>费率</th><th>标签</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <div class="panel-title">归因说明</div>
+        <div id="event-narrative" class="narrative-box empty">选择一条事件</div>
+      </div>
+    </section>
+
+    <!-- 实时指标 -->
+    <section id="tab-metrics" class="tab-panel">
+      <div class="panel">
+        <div class="panel-title">最新指标快照 <span style="font-weight:400;text-transform:none;color:var(--mut)">每 symbol 最近一条</span></div>
+        <table class="tbl" id="tbl-metrics">
+          <thead>
+            <tr><th>币种</th><th>更新时间</th><th>价格</th><th>费率</th><th>OI</th><th>OI/市值</th><th>大户多空</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 代币库 -->
+    <section id="tab-tokens" class="tab-panel">
+      <div class="panel">
+        <div class="panel-title">token_metadata 持久化合约库</div>
+        <table class="tbl" id="tbl-tokens">
+          <thead>
+            <tr><th>Base</th><th>永续</th><th>链</th><th>合约</th><th>CoinGecko</th><th>更新</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "ethereum": [
+    {
+      "address": "0x28C6c06298d514Db089934071355E5743bf21d60",
+      "label": "binance_hot"
+    },
+    {
+      "address": "0x21a31Ee1afC51d4C2acFf7427200784e26316973",
+      "label": "binance_hot"
+    }
+  ],
+  "bsc": [
+    {
+      "address": "0x8894E0a0c962CB723c1976a4421c95949bE2D4E3",
+      "label": "binance_hot"
+    }
+  ]
+}

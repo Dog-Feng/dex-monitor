@@ -1,0 +1,14 @@
+config.yaml
+data/monitor.db
+data/monitor.db-wal
+data/monitor.db-shm
+data/app.log
+data/wallets.json
+data/cex_hot_wallets.json
+data/reports/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env

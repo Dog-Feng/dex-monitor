@@ -109,6 +109,15 @@ class Repository:
                 whale_long_short_ratio, market_cap, oi_mcap_ratio,
                 funding_interval_hours
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(symbol, ts) DO UPDATE SET
+                price=excluded.price,
+                volume_5m=excluded.volume_5m,
+                oi=excluded.oi,
+                funding_rate=excluded.funding_rate,
+                whale_long_short_ratio=COALESCE(excluded.whale_long_short_ratio, metrics.whale_long_short_ratio),
+                market_cap=COALESCE(excluded.market_cap, metrics.market_cap),
+                oi_mcap_ratio=COALESCE(excluded.oi_mcap_ratio, metrics.oi_mcap_ratio),
+                funding_interval_hours=excluded.funding_interval_hours
             """,
             (
                 snapshot.ts,
@@ -354,6 +363,11 @@ class Repository:
         sql = """
             SELECT m.*
             FROM metrics m
+            INNER JOIN (
+                SELECT symbol, ts, MAX(id) AS max_id
+                FROM metrics
+                GROUP BY symbol, ts
+            ) d ON m.id = d.max_id
             INNER JOIN (
                 SELECT symbol, MAX(ts) AS max_ts
                 FROM metrics

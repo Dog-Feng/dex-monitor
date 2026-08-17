@@ -193,15 +193,9 @@ class PollController:
         snapshots = self.binance.klines_to_snapshots(
             symbol, klines, oi, funding, whale, interval_h
         )
-        for snap in snapshots[:-1]:
+        for snap in snapshots:
             self.buffer.push(snap)
-            if not self.repo.metric_exists(symbol, snap.ts):
-                self.repo.insert_metrics(snap)
-        if snapshots:
-            last = snapshots[-1]
-            self.buffer.push(last)
-            if not self.repo.metric_exists(symbol, last.ts):
-                self.repo.insert_metrics(last)
+            self.repo.insert_metrics(snap)
 
     def _apply_market_cap(self, sym: SymbolConfig, snapshot: MetricSnapshot) -> None:
         if snapshot.market_cap:

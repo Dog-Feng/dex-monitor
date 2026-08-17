@@ -122,3 +122,22 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute(
             "ALTER TABLE metrics ADD COLUMN funding_interval_hours INTEGER DEFAULT 8"
         )
+    _dedupe_metrics_symbol_ts(conn)
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_metrics_symbol_ts_unique
+        ON metrics(symbol, ts)
+        """
+    )
+
+
+def _dedupe_metrics_symbol_ts(conn: sqlite3.Connection) -> None:
+    """同一 symbol+ts 保留 id 最大的一条，避免看板出现重复行。"""
+    conn.execute(
+        """
+        DELETE FROM metrics
+        WHERE id NOT IN (
+            SELECT MAX(id) FROM metrics GROUP BY symbol, ts
+        )
+        """
+    )

@@ -189,6 +189,37 @@ class Repository:
         ).fetchall()
         return [_row_to_unlock(row) for row in rows]
 
+    def load_next_unlocks_map(self, now: int | None = None) -> dict[str, UnlockEvent]:
+        """各 symbol 最近一条未来解锁（排除 coingecko_supply 供应快照）。"""
+        now = now or int(time.time())
+        rows = self.conn.execute(
+            """
+            SELECT * FROM unlocks
+            WHERE unlock_ts > ? AND source != 'coingecko_supply'
+            ORDER BY symbol, unlock_ts ASC
+            """,
+            (now,),
+        ).fetchall()
+        result: dict[str, UnlockEvent] = {}
+        for row in rows:
+            sym = row["symbol"]
+            if sym not in result:
+                result[sym] = _row_to_unlock(row)
+        return result
+
+    def load_latest_market_cap_map(self) -> dict[str, float]:
+        rows = self.conn.execute(
+            """
+            SELECT m.symbol, m.market_cap
+            FROM metrics m
+            INNER JOIN (
+                SELECT symbol, MAX(ts) AS max_ts FROM metrics GROUP BY symbol
+            ) t ON m.symbol = t.symbol AND m.ts = t.max_ts
+            WHERE m.market_cap IS NOT NULL
+            """
+        ).fetchall()
+        return {row["symbol"]: float(row["market_cap"]) for row in rows}
+
     def insert_onchain_event(self, event: OnchainEvent) -> int | None:
         try:
             cur = self.conn.execute(

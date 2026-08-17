@@ -196,23 +196,40 @@ function selectToken(symbol) {
   });
 }
 
+function tokenomistUrl(m) {
+  if (m.tokenomist_url) return m.tokenomist_url;
+  const slug = (m.coingecko_id || m.base_asset || '').toLowerCase();
+  return slug ? `https://tokenomist.ai/${slug}` : '';
+}
+
 function renderTokensTable(list) {
   if (!list.length) {
     $('tokens-body').innerHTML =
-      '<tr><td colspan="6" class="empty-row">暂无持久化代币，poll 后会自动解析</td></tr>';
+      '<tr><td colspan="10" class="empty-row">暂无持久化代币，poll 后会自动解析</td></tr>';
     return;
   }
   $('tokens-body').innerHTML = list
-    .map(
-      (m) => `<tr>
+    .map((m) => {
+      const unlockTitle = m.next_unlock_source
+        ? `来源: ${m.next_unlock_source}`
+        : '无本地解锁日程；点击右侧按钮在 Tokenomist 查看';
+      const tmUrl = tokenomistUrl(m);
+      const linkCell = tmUrl
+        ? `<a class="tk-ext-link" href="${tmUrl}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看 ${m.base_asset} 解锁日程">解锁 ↗</a>`
+        : '—';
+      return `<tr>
       <td>${m.base_asset}</td>
       <td>${m.symbol}</td>
       <td>${m.chain || '—'}</td>
       <td class="contract" title="${m.token_contract || ''}">${shortAddr(m.token_contract)}</td>
       <td>${m.coingecko_id || '—'}</td>
+      <td class="num" title="${unlockTitle}">${m.next_unlock_date || '—'}</td>
+      <td class="num" title="${unlockTitle}">${m.next_unlock_pct_display || '—'}</td>
+      <td class="num">${m.market_cap_display || '—'}</td>
       <td class="num">${m.updated_time?.slice(5, 16) || '—'}</td>
-    </tr>`,
-    )
+      <td class="tk-link-cell">${linkCell}</td>
+    </tr>`;
+    })
     .join('');
 }
 

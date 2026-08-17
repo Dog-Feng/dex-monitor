@@ -193,24 +193,76 @@ def build_metrics(repo: Repository, limit: int = 60) -> list[dict[str, Any]]:
 
 def build_token_metadata(repo: Repository, limit: int = 100) -> list[dict[str, Any]]:
     items = repo.load_all_token_metadata(limit)
-    return [
-        {
-            "base_asset": m.base_asset,
-            "symbol": m.symbol,
-            "chain": m.chain,
-            "platform": m.platform,
-            "token_contract": m.token_contract,
-            "coingecko_id": m.coingecko_id,
-            "name": m.name,
-            "market_cap_rank": m.market_cap_rank,
-            "updated_at": m.updated_at,
-            "updated_time": _fmt_ts(m.updated_at),
-        }
-        for m in items
-    ]
+    next_unlocks = repo.load_next_unlocks_map()
+    mcap_map = repo.load_latest_market_cap_map()
+    result: list[dict[str, Any]] = []
+    for m in items:
+        unlock = next_unlocks.get(m.symbol)
+        mcap = mcap_map.get(m.symbol)
+        result.append(
+            {
+                "base_asset": m.base_asset,
+                "symbol": m.symbol,
+                "chain": m.chain,
+                "platform": m.platform,
+                "token_contract": m.token_contract,
+                "coingecko_id": m.coingecko_id,
+                "name": m.name,
+                "market_cap_rank": m.market_cap_rank,
+                "updated_at": m.updated_at,
+                "updated_time": _fmt_ts(m.updated_at),
+                "next_unlock_ts": unlock.unlock_ts if unlock else None,
+                "next_unlock_date": _fmt_date(unlock.unlock_ts) if unlock else None,
+                "next_unlock_pct": unlock.pct_circulating if unlock else None,
+                "next_unlock_pct_display": (
+                    _fmt_unlock_pct(unlock.pct_circulating, unlock.source)
+                    if unlock
+                    else None
+                ),
+                "next_unlock_source": unlock.source if unlock else None,
+                "market_cap": mcap,
+                "market_cap_display": _fmt_mcap(mcap),
+                "tokenomist_url": _tokenomist_url(m.coingecko_id, m.base_asset),
+            }
+        )
+    return result
+
+
+def _tokenomist_url(coingecko_id: str | None, base_asset: str) -> str:
+    slug = (coingecko_id or base_asset or "").strip().lower()
+    return f"https://tokenomist.ai/{slug}" if slug else ""
 
 
 def _fmt_ts(ts: int | None) -> str | None:
     if not ts:
         return None
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+
+
+def _fmt_date(ts: int | None) -> str | None:
+    if not ts:
+        return None
+    return time.strftime("%Y-%m-%d", time.localtime(ts))
+
+
+def _fmt_unlock_pct(pct: float | None, source: str | None) -> str | None:
+    if pct is None:
+        return None
+    if source == "coingecko_supply":
+        return f"{pct:.2f}%"
+    if abs(pct) <= 1:
+        return f"{pct * 100:.2f}%"
+    return f"{pct:.2f}%"
+
+
+def _fmt_mcap(value: float | None) -> str | None:
+    if value is None:
+        return None
+    v = float(value)
+    if v >= 1_000_000_000:
+        return f"${v / 1_000_000_000:.2f}B"
+    if v >= 1_000_000:
+        return f"${v / 1_000_000:.2f}M"
+    if v >= 1_000:
+        return f"${v / 1_000:.2f}K"
+    return f"${v:.2f}"

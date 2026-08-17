@@ -154,13 +154,37 @@ th.sortable.sorted .sort-icon { opacity: 1; color: var(--pur); }
 
 .detail-panel { margin-top: 14px; }
 
-.tbl-tokens { min-width: 720px; font-size: 13px; }
+.tbl-tokens { min-width: 1040px; font-size: 13px; }
 .tbl-tokens col.tk-base { width: 72px; }
 .tbl-tokens col.tk-symbol { width: 108px; }
 .tbl-tokens col.tk-chain { width: 56px; }
 .tbl-tokens col.tk-contract { width: 168px; }
-.tbl-tokens col.tk-cg { width: 140px; }
+.tbl-tokens col.tk-cg { width: 120px; }
+.tbl-tokens col.tk-unlock-date { width: 88px; }
+.tbl-tokens col.tk-unlock-pct { width: 72px; }
+.tbl-tokens col.tk-mcap { width: 88px; }
 .tbl-tokens col.tk-updated { width: 96px; }
+.tbl-tokens col.tk-link { width: 56px; }
+
+.tbl-tokens .tk-ext-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pur);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tbl-tokens .tk-ext-link:hover {
+  background: rgba(139, 92, 246, 0.18);
+  color: var(--txt);
+}
 
 .tbl-tokens .contract {
   font-family: ui-monospace, "Cascadia Code", monospace;

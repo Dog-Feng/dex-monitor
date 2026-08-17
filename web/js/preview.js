@@ -84,7 +84,11 @@ const MOCK_METADATA = [
     chain: 'bsc',
     contract: '0x4a220e6096a25adb0e783b1a8e8c2a8893b6b9f8',
     cg: 'gps-ecosystem',
+    unlock_date: '2026-08-20',
+    unlock_pct: '2.50%',
+    mcap: '$12.50M',
     updated: '2026-08-17 15:20',
+    tokenomist: 'https://tokenomist.ai/gps-ecosystem',
   },
   {
     base: 'PORTAL',
@@ -92,15 +96,23 @@ const MOCK_METADATA = [
     chain: 'bsc',
     contract: '0x1bbe973bef3a40fc36f880eb7123073090ecef0',
     cg: 'portal-2',
+    unlock_date: '—',
+    unlock_pct: '—',
+    mcap: '$45.20M',
     updated: '2026-08-17 15:18',
+    tokenomist: 'https://tokenomist.ai/portal-2',
   },
   {
-    base: 'CAKE',
-    symbol: 'CAKEUSDT',
-    chain: 'bsc',
-    contract: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
-    cg: 'pancakeswap-token',
+    base: 'SOSO',
+    symbol: 'SOSOUSDT',
+    chain: 'eth',
+    contract: '0x76a0fcea2d',
+    cg: 'sosovalue',
+    unlock_date: '2026-08-24',
+    unlock_pct: '—',
+    mcap: '$111.07M',
     updated: '2026-08-17 14:02',
+    tokenomist: 'https://tokenomist.ai/sosovalue',
   },
 ];
 
@@ -302,7 +314,11 @@ function renderTokensTable() {
       <td>${m.chain}</td>
       <td class="contract" title="${m.contract}">${shortAddr(m.contract)}</td>
       <td>${m.cg}</td>
+      <td class="num">${m.unlock_date}</td>
+      <td class="num">${m.unlock_pct}</td>
+      <td class="num">${m.mcap}</td>
       <td class="num">${m.updated.slice(5, 16)}</td>
+      <td class="tk-link-cell"><a class="tk-ext-link" href="${m.tokenomist}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看解锁日程">解锁 ↗</a></td>
     </tr>`,
   ).join('');
 }

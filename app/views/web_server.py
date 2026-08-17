@@ -94,7 +94,21 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     return app
 
 
+def _ensure_waitress() -> bool:
+    try:
+        import waitress  # noqa: F401
+    except ImportError:
+        logger.error(
+            "Web 看板需要 waitress：请执行 pip install -r requirements.txt "
+            "（或 pip install 'waitress>=3.0.0'）后重启服务"
+        )
+        return False
+    return True
+
+
 def _serve_app(app: Flask, host: str, port: int) -> None:
+    if not _ensure_waitress():
+        return
     logger.info("Web dashboard http://%s:%s (waitress)", host, port)
     from waitress import serve
 
@@ -102,6 +116,8 @@ def _serve_app(app: Flask, host: str, port: int) -> None:
 
 
 def run_web_server(config: dict[str, Any]) -> None:
+    if not _ensure_waitress():
+        raise SystemExit(1)
     web_cfg = config.get("web", {})
     host = web_cfg.get("host", "127.0.0.1")
     port = int(web_cfg.get("port", DEFAULT_WEB_PORT))
@@ -115,12 +131,18 @@ def start_web_server_background(config: dict[str, Any]) -> threading.Thread | No
         logger.info("Web dashboard disabled (web.enabled=false)")
         return None
 
+    if not _ensure_waitress():
+        return None
+
     host = web_cfg.get("host", "127.0.0.1")
     port = int(web_cfg.get("port", DEFAULT_WEB_PORT))
     app = create_app(config)
 
     def _serve() -> None:
-        _serve_app(app, host, port)
+        try:
+            _serve_app(app, host, port)
+        except Exception:
+            logger.exception("Web 看板线程异常退出")
 
     thread = threading.Thread(target=_serve, name="web-dashboard", daemon=True)
     thread.start()

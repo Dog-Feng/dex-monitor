@@ -240,6 +240,7 @@ sudo -u tam cp /opt/token-anomaly-monitor/data/monitor.db \
 | 现象 | 排查 |
 |------|------|
 | 公网无法访问 | 检查 `web.host` 是否为 `0.0.0.0`；安全组/UFW 是否放行 8089 |
+| 看板无法访问 / ModuleNotFoundError: waitress | 升级后执行 `pip install -r requirements.txt` 并 `systemctl restart` |
 | 看板无数据 | `systemctl status` 是否正常；`data/app.log` 是否有 Binance 请求错误 |
 | CoinGecko 429 | 免费 API 限流；增大 `coingecko.metadata_refresh_hours` 或配置 Pro Key |
 | 端口被占用 | `ss -lntp \| grep 8089` 换 `web.port` 或停止冲突进程 |

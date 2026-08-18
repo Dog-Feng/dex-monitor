@@ -24,13 +24,51 @@ def build_monitor_tokens(
             ticker24h = json.loads(raw_ticker)
         except json.JSONDecodeError:
             ticker24h = {}
-    rows = repo.load_latest_metrics_snapshot(limit, enabled_only=True)
+    enabled = repo.load_enabled_symbols()[:limit]
+    metrics_by_symbol = {
+        row["symbol"]: row
+        for row in repo.load_latest_metrics_snapshot(limit, enabled_only=True)
+    }
     now = int(time.time())
     since_recent = now - 6 * 3600
     result: list[dict[str, Any]] = []
 
-    for row in rows:
-        symbol = row["symbol"]
+    for sym in enabled:
+        symbol = sym.symbol
+        row = metrics_by_symbol.get(symbol)
+        if not row:
+            base = sym.base_asset or symbol.replace("USDT", "")
+            meta = meta_by_symbol.get(symbol)
+            coingecko_id = meta.coingecko_id if meta else sym.coingecko_id
+            change_24h = ticker24h.get(symbol)
+            result.append(
+                {
+                    "symbol": symbol,
+                    "base": base,
+                    "ts": None,
+                    "time": "—",
+                    "price": None,
+                    "change_15m": None,
+                    "change_15m_pct": None,
+                    "change_24h": change_24h,
+                    "change_24h_pct": round(change_24h * 100, 2)
+                    if change_24h is not None
+                    else None,
+                    "funding_rate": None,
+                    "funding_interval_hours": 8,
+                    "oi": None,
+                    "oi_mcap_ratio": None,
+                    "whale_long_short_ratio": None,
+                    "market_cap": None,
+                    "market_cap_display": "—",
+                    "coingecko_id": coingecko_id,
+                    "tokenomist_url": _tokenomist_url(coingecko_id, base),
+                    "conclusion": "等待数据采集",
+                    "narrative": "",
+                }
+            )
+            continue
+
         latest_ts = int(row["ts"])
         latest_price = float(row["price"])
 

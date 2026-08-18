@@ -82,7 +82,8 @@ class SymbolDiscovery:
         if not candidates:
             return []
 
-        fixed_n = int(self.cfg.get("fixed_top_gainers", 0))
+        # 未配置时 dynamic 模式默认固定 24h 涨幅榜前 30，避免旧版 15m 阈值只剩极少数币
+        fixed_n = int(self.cfg.get("fixed_top_gainers", 30))
         if fixed_n > 0:
             return self._select_fixed_top_gainers(candidates, fixed_n)
 

@@ -95,6 +95,51 @@ def test_discovery_excludes_tradfi_perpetuals():
     binance.is_tradfi_perpetual.assert_called()
 
 
+def test_discovery_fixed_top_gainers():
+    binance = MagicMock()
+    tickers = []
+    for i in range(40):
+        tickers.append(
+            {
+                "symbol": f"TOK{i}USDT",
+                "priceChangePercent": str(40 - i),
+                "quoteVolume": "10000000",
+                "lastPrice": "1.0",
+            }
+        )
+    tickers.append(
+        {
+            "symbol": "TSLAUSDT",
+            "priceChangePercent": "99",
+            "quoteVolume": "20000000",
+            "lastPrice": "400",
+        }
+    )
+    binance.fetch_tickers_24hr.return_value = tickers
+    binance.is_tradfi_perpetual.side_effect = lambda s: s == "TSLAUSDT"
+    binance.fetch_short_term_change.return_value = 0.01
+    binance.refresh_symbol_meta.return_value = None
+    binance.refresh_ticker_24h.return_value = {}
+
+    discovery = SymbolDiscovery(
+        binance,
+        {
+            "enabled": True,
+            "mode": "dynamic",
+            "fixed_top_gainers": 30,
+            "min_quote_volume_usdt": 5_000_000,
+            "exclude_tradfi": True,
+        },
+    )
+    result = discovery.resolve([])
+    assert len(result) == 30
+    symbols = {s.symbol for s in result}
+    assert "TSLAUSDT" not in symbols
+    assert "TOK0USDT" in symbols
+    assert "TOK29USDT" in symbols
+    assert "TOK30USDT" not in symbols
+
+
 def test_hybrid_merges_static_chain_info():
     binance = MagicMock()
     binance.fetch_tickers_24hr.return_value = [
@@ -106,6 +151,9 @@ def test_hybrid_merges_static_chain_info():
         }
     ]
     binance.fetch_short_term_change.return_value = 0.1
+    binance.is_tradfi_perpetual.return_value = False
+    binance.refresh_symbol_meta.return_value = None
+    binance.refresh_ticker_24h.return_value = {"AAAUSDT": 0.2}
 
     discovery = SymbolDiscovery(
         binance,

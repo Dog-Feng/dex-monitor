@@ -6,10 +6,11 @@ kline_interval: "5m"
 discovery:
   enabled: true
   mode: dynamic          # dynamic | static | hybrid
-  top_gainers: 25
-  top_losers: 25
+  fixed_top_gainers: 30  # >0：固定 24h 涨幅榜前 N（剔除 TradFi 后），忽略 top_losers/min_change_15m
+  top_gainers: 30
+  top_losers: 0
   min_quote_volume_usdt: 5000000
-  min_change_15m: 0.03     # 15m 涨跌幅阈值，|change| >= 3% 才进入分析
+  min_change_15m: 0.03     # fixed_top_gainers>0 时不生效
   bars_15m: 3
   fallback_top_n: 15
   exclude_tradfi: true   # 剔除 Binance TradFi 代币化股票永续（underlyingType=EQUITY）

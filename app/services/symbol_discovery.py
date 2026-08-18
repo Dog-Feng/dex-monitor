@@ -19,7 +19,7 @@ DEFAULT_EXCLUDE = {
 
 
 class SymbolDiscovery:
-    """从 Binance 永续 24h ticker 粗筛，再用 5m K 线计算短周期涨跌幅排序。"""
+    """从 Binance 永续 24h ticker 筛选监控列表。"""
 
     def __init__(self, binance: BinanceFetcher, discovery_cfg: dict[str, Any]):
         self.binance = binance
@@ -39,6 +39,10 @@ class SymbolDiscovery:
     @property
     def last_rankings(self) -> list[dict[str, Any]]:
         return list(self._rankings)
+
+    @property
+    def last_symbol_order(self) -> list[str]:
+        return [s.symbol for s in self._cache]
 
     def resolve(self, static_symbols: list[SymbolConfig]) -> list[SymbolConfig]:
         mode = self.mode
@@ -74,15 +78,24 @@ class SymbolDiscovery:
 
         self.binance.refresh_ticker_24h(force=True)
 
+        candidates = self._build_candidates(tickers, exclude_tradfi)
+        if not candidates:
+            return []
+
+        fixed_n = int(self.cfg.get("fixed_top_gainers", 0))
+        if fixed_n > 0:
+            return self._select_fixed_top_gainers(candidates, fixed_n)
+
+        return self._select_legacy(candidates)
+
+    def _build_candidates(
+        self, tickers: list[dict[str, Any]], exclude_tradfi: bool
+    ) -> list[dict[str, Any]]:
         min_volume = float(self.cfg.get("min_quote_volume_usdt", 5_000_000))
         exclude = set(self.cfg.get("exclude_symbols") or []) | DEFAULT_EXCLUDE
-        top_gainers = int(self.cfg.get("top_gainers", 20))
-        top_losers = int(self.cfg.get("top_losers", 20))
-        min_change_15m = float(self.cfg.get("min_change_15m", 0.03))
-        bars_15m = int(self.cfg.get("bars_15m", 3))
-
-        candidates: list[dict[str, Any]] = []
         skipped_tradfi = 0
+        candidates: list[dict[str, Any]] = []
+
         for row in tickers:
             symbol = row.get("symbol", "")
             if not symbol.endswith("USDT"):
@@ -107,9 +120,49 @@ class SymbolDiscovery:
 
         if skipped_tradfi:
             logger.info("Discovery skipped %s TradFi/tokenized stock perpetuals", skipped_tradfi)
+        return candidates
 
-        if not candidates:
-            return []
+    def _select_fixed_top_gainers(
+        self, candidates: list[dict[str, Any]], n: int
+    ) -> list[SymbolConfig]:
+        """固定取 24h 涨幅榜前 N（已剔除 TradFi / 稳定币 / 低成交量）。"""
+        bars_15m = int(self.cfg.get("bars_15m", 3))
+        by_24h_gain = sorted(candidates, key=lambda x: x["change_24h"], reverse=True)
+        top = by_24h_gain[:n]
+
+        rankings: list[dict[str, Any]] = []
+        selected: list[SymbolConfig] = []
+
+        for row in top:
+            symbol = row["symbol"]
+            change_15m = self.binance.fetch_short_term_change(symbol, bars=bars_15m)
+            item = {
+                **row,
+                "change_15m": change_15m,
+                "base_asset": symbol.replace("USDT", ""),
+            }
+            rankings.append(item)
+            selected.append(
+                SymbolConfig(
+                    symbol=symbol,
+                    base_asset=item["base_asset"],
+                    enabled=True,
+                )
+            )
+
+        self._rankings = rankings
+        logger.info(
+            "Discovery fixed top %s gainers (24h), monitoring %s symbols",
+            n,
+            len(selected),
+        )
+        return selected
+
+    def _select_legacy(self, candidates: list[dict[str, Any]]) -> list[SymbolConfig]:
+        top_gainers = int(self.cfg.get("top_gainers", 20))
+        top_losers = int(self.cfg.get("top_losers", 20))
+        min_change_15m = float(self.cfg.get("min_change_15m", 0.03))
+        bars_15m = int(self.cfg.get("bars_15m", 3))
 
         by_24h_gain = sorted(candidates, key=lambda x: x["change_24h"], reverse=True)
         by_24h_loss = sorted(candidates, key=lambda x: x["change_24h"])

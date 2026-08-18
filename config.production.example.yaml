@@ -7,8 +7,9 @@ kline_interval: "5m"
 discovery:
   enabled: true
   mode: dynamic
-  top_gainers: 25
-  top_losers: 25
+  fixed_top_gainers: 30
+  top_gainers: 30
+  top_losers: 0
   min_quote_volume_usdt: 5000000
   min_change_15m: 0.03
   bars_15m: 3

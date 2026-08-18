@@ -62,6 +62,7 @@ class PollController:
         # 启动阶段跳过 CoinGecko 解析，避免限流阻塞 Web 看板就绪
         symbols = self._resolve_active_symbols(enrich_metadata=False)
         self.repo.sync_active_symbols(symbols)
+        self._persist_symbol_order(symbols)
         for sym in symbols:
             if sym.enabled:
                 history = self.repo.load_recent_metrics(sym.symbol)
@@ -91,6 +92,7 @@ class PollController:
             return
 
         self.repo.sync_active_symbols(symbols)
+        self._persist_symbol_order(symbols)
 
         self.binance.refresh_ticker_24h(force=False)
         self.repo.set_scan_state(
@@ -149,6 +151,12 @@ class PollController:
                     event.symbol,
                     event.anomaly_type,
                 )
+
+    def _persist_symbol_order(self, symbols: list[SymbolConfig]) -> None:
+        self.repo.set_scan_state(
+            "discovery:symbol_order",
+            json.dumps([s.symbol for s in symbols], ensure_ascii=False),
+        )
 
     def _ensure_history(self, symbol: str) -> None:
         if symbol in self._seeded_symbols:

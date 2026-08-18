@@ -88,6 +88,23 @@ def build_monitor_tokens(
             }
         )
 
+    order_raw = repo.get_scan_state("discovery:symbol_order")
+    if order_raw:
+        try:
+            order = json.loads(order_raw)
+            rank = {sym: idx for idx, sym in enumerate(order)}
+            result.sort(key=lambda item: rank.get(item["symbol"], len(rank)))
+        except json.JSONDecodeError:
+            result.sort(
+                key=lambda item: item.get("change_24h") if item.get("change_24h") is not None else -999,
+                reverse=True,
+            )
+    else:
+        result.sort(
+            key=lambda item: item.get("change_24h") if item.get("change_24h") is not None else -999,
+            reverse=True,
+        )
+
     return result
 
 

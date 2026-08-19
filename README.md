@@ -32,7 +32,7 @@ Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空*
 ## 快速开始（本地）
 
 ```bash
-git clone https://github.com/Dog-Feng/token-anomaly-monitor.git dex-monitor
+git clone https://github.com/Dog-Feng/dex-monitor.git
 cd dex-monitor
 
 python3 -m venv .venv

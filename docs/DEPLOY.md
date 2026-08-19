@@ -62,15 +62,14 @@ cd /opt/dex-monitor
 
 ```bash
 # 首次克隆
-git clone https://github.com/Dog-Feng/token-anomaly-monitor.git /opt/dex-monitor
+git clone https://github.com/Dog-Feng/dex-monitor.git /opt/dex-monitor
 
 # 已有目录则升级
 cd /opt/dex-monitor
+git remote set-url origin https://github.com/Dog-Feng/dex-monitor.git
 git fetch origin
 git reset --hard origin/main
 ```
-
-> GitHub 仓库名仍为 `token-anomaly-monitor`，本地目录使用 `dex-monitor`。
 
 ### 3.3 Python 虚拟环境
 
@@ -319,7 +318,11 @@ systemctl enable dex-monitor
 systemctl start dex-monitor
 ```
 
-`config.yaml` 与 `data/` 会随目录一并保留，无需重新配置。
+`config.yaml` 与 `data/` 会随目录一并保留，无需重新配置。若 origin 仍指向旧仓库名，执行：
+
+```bash
+git remote set-url origin https://github.com/Dog-Feng/dex-monitor.git
+```
 
 ---
 

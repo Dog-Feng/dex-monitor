@@ -1,5 +1,5 @@
 /** 股票价差监控 — 对接 /api/spread/board，UI 风格与主看板一致 */
-
+(function () {
 const SPREAD_POLL_MS = 2000;
 const STALE_MS = 12000;
 const WARN_BPS = 30;
@@ -414,6 +414,11 @@ function initSpreadTab() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initSpreadTab);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSpreadTab);
+} else {
+  initSpreadTab();
+}
 
 window.SpreadMonitor = { activate: startSpreadPolling, deactivate: stopSpreadPolling, refresh: refreshSpread };
+})();

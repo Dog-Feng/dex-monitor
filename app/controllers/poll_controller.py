@@ -99,6 +99,7 @@ class PollController:
             "ticker24h",
             json.dumps(self.binance._ticker_24h_pct, ensure_ascii=False),
         )
+        self._refresh_horizon_changes(symbols)
 
         for sym in symbols:
             self._ensure_history(sym.symbol)
@@ -151,6 +152,26 @@ class PollController:
                     event.symbol,
                     event.anomaly_type,
                 )
+
+    def _refresh_horizon_changes(self, symbols: list[SymbolConfig]) -> None:
+        changes_2d: dict[str, float] = {}
+        changes_3d: dict[str, float] = {}
+        for sym in symbols:
+            try:
+                ch = self.binance.fetch_horizon_changes(sym.symbol, (48, 72))
+            except Exception:
+                logger.warning("Binance 2D/3D K线获取失败: %s", sym.symbol, exc_info=True)
+                continue
+            if ch.get(48) is not None:
+                changes_2d[sym.symbol] = ch[48]
+            if ch.get(72) is not None:
+                changes_3d[sym.symbol] = ch[72]
+        self.repo.set_scan_state(
+            "ticker2d", json.dumps(changes_2d, ensure_ascii=False)
+        )
+        self.repo.set_scan_state(
+            "ticker3d", json.dumps(changes_3d, ensure_ascii=False)
+        )
 
     def _persist_symbol_order(self, symbols: list[SymbolConfig]) -> None:
         self.repo.set_scan_state(

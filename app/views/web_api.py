@@ -9,6 +9,17 @@ from app.models.entities import MetricSnapshot
 from app.models.repositories import Repository
 
 
+def _load_ticker_map(repo: Repository, key: str) -> dict[str, float]:
+    raw = repo.get_scan_state(key)
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+        return {k: float(v) for k, v in data.items()}
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
+
 def build_monitor_tokens(
     repo: Repository,
     detection_cfg: dict[str, Any],
@@ -17,13 +28,9 @@ def build_monitor_tokens(
     explain = ExplainController(detection_cfg, repo)
     base_map = repo.load_symbol_base_map()
     meta_by_symbol = {m.symbol: m for m in repo.load_all_token_metadata(500)}
-    ticker24h: dict[str, float] = {}
-    raw_ticker = repo.get_scan_state("ticker24h")
-    if raw_ticker:
-        try:
-            ticker24h = json.loads(raw_ticker)
-        except json.JSONDecodeError:
-            ticker24h = {}
+    ticker24h = _load_ticker_map(repo, "ticker24h")
+    ticker2d = _load_ticker_map(repo, "ticker2d")
+    ticker3d = _load_ticker_map(repo, "ticker3d")
     enabled = repo.load_enabled_symbols()[:limit]
     metrics_by_symbol = {
         row["symbol"]: row
@@ -41,6 +48,8 @@ def build_monitor_tokens(
             meta = meta_by_symbol.get(symbol)
             coingecko_id = meta.coingecko_id if meta else sym.coingecko_id
             change_24h = ticker24h.get(symbol)
+            change_2d = ticker2d.get(symbol)
+            change_3d = ticker3d.get(symbol)
             result.append(
                 {
                     "symbol": symbol,
@@ -53,6 +62,14 @@ def build_monitor_tokens(
                     "change_24h": change_24h,
                     "change_24h_pct": round(change_24h * 100, 2)
                     if change_24h is not None
+                    else None,
+                    "change_2d": change_2d,
+                    "change_2d_pct": round(change_2d * 100, 2)
+                    if change_2d is not None
+                    else None,
+                    "change_3d": change_3d,
+                    "change_3d_pct": round(change_3d * 100, 2)
+                    if change_3d is not None
                     else None,
                     "funding_rate": None,
                     "funding_interval_hours": 8,
@@ -80,6 +97,8 @@ def build_monitor_tokens(
         change_24h = _pct_change(latest_price, m24["price"] if m24 else None)
         if change_24h is None and symbol in ticker24h:
             change_24h = ticker24h[symbol]
+        change_2d = ticker2d.get(symbol)
+        change_3d = ticker3d.get(symbol)
         oi_change_30m = _pct_change(row["oi"], m30["oi"] if m30 else None)
 
         funding_interval = 8
@@ -112,6 +131,10 @@ def build_monitor_tokens(
                 "change_15m_pct": round(change_15m * 100, 2) if change_15m is not None else None,
                 "change_24h": change_24h,
                 "change_24h_pct": round(change_24h * 100, 2) if change_24h is not None else None,
+                "change_2d": change_2d,
+                "change_2d_pct": round(change_2d * 100, 2) if change_2d is not None else None,
+                "change_3d": change_3d,
+                "change_3d_pct": round(change_3d * 100, 2) if change_3d is not None else None,
                 "funding_rate": row["funding_rate"],
                 "funding_interval_hours": funding_interval,
                 "oi": row["oi"],

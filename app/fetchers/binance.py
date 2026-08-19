@@ -123,10 +123,16 @@ class BinanceFetcher:
             logger.warning("Binance fetch failed for %s: %s", symbol, exc)
             return None
 
-    def fetch_klines(self, symbol: str, limit: int = 288) -> list[dict[str, Any]]:
+    def fetch_klines(
+        self, symbol: str, limit: int = 288, interval: str | None = None
+    ) -> list[dict[str, Any]]:
         data = self._get(
             f"{BINANCE_FAPI}/fapi/v1/klines",
-            {"symbol": symbol, "interval": self.kline_interval, "limit": limit},
+            {
+                "symbol": symbol,
+                "interval": interval or self.kline_interval,
+                "limit": limit,
+            },
         )
         result = []
         for row in data:
@@ -184,6 +190,26 @@ class BinanceFetcher:
         if old_price <= 0:
             return None
         return (new_price - old_price) / old_price
+
+    def fetch_horizon_changes(
+        self, symbol: str, hours: tuple[int, ...] = (48, 72)
+    ) -> dict[int, float | None]:
+        """用 1h K 线计算滚动 N 小时涨跌幅（如 48h→2D，72h→3D）。"""
+        if not hours:
+            return {}
+        max_h = max(hours)
+        klines = self.fetch_klines(symbol, interval="1h", limit=max_h + 1)
+        if len(klines) < 2:
+            return {h: None for h in hours}
+        current = float(klines[-1]["close"])
+        out: dict[int, float | None] = {}
+        for h in hours:
+            if len(klines) <= h:
+                out[h] = None
+                continue
+            old = float(klines[-1 - h]["close"])
+            out[h] = (current - old) / old if old > 0 else None
+        return out
 
     def _fetch_latest_kline(self, symbol: str) -> dict[str, Any] | None:
         klines = self.fetch_klines(symbol, limit=2)

@@ -607,27 +607,44 @@ Python **3.11+**（使用 `list[str]` 等类型注解）。
 
 ### 15.1 页面结构
 
-- **异常监控**：代币维度一行；左对齐表格；结论列为规则引擎输出的中文摘要（非 LLM）
+- **代币异常监控**：默认 **10** 个 symbol（`discovery.fixed_top_gainers`，剔除 TradFi）；一行一币；含 15M/24H/**2D/3D**、费率、OI、结论；支持列排序
+- **股票价差监控**：Binance / Hyperliquid / SoDEX 代币化股票标记价差 + 全球指数（`spread_monitor.enabled`）
 - **代币库**：`token_metadata` 只读列表
-- 离线 Mock：`web/static-demo.html`；服务端预览：`/preview`
+- 静态预览：`/preview`（代币）、`/spread-preview`（价差）
 
-### 15.2 结论生成
+### 15.2 涨跌幅数据来源
+
+| 列 | 来源 |
+|----|------|
+| 15M | 本地 metrics 快照 vs 15 分钟前 |
+| 24H | 优先 Binance `ticker/24hr`；否则 metrics vs 24h 前 |
+| 2D / 3D | **Binance 1h K 线**，滚动 48h / 72h；poll 写入 `scan_state:ticker2d` / `ticker3d` |
+
+### 15.3 结论生成
 
 1. poll 检测异常 → `ExplainController.enrich()` → `narrative` 末行 `→ …` 为结论
 2. 看板实时行：优先 6h 内已入库异常 narrative；否则 `summarize_for_display()` 按当前指标即时推断
 3. 话术模板写死在 `explain_controller._summary_line()`，触发条件由 tags / 阈值决定
 
-### 15.3 主要 API
+### 15.4 主要 API
 
 | 路径 | 用途 |
 |------|------|
-| `/api/monitor-tokens` | 监控主表（含 15M/24H、费率周期、结论） |
+| `/api/monitor-tokens?limit=10` | 监控主表（含 2D/3D、结论） |
+| `/api/spread/board` | 股票价差 quotes / indices / sync |
 | `/api/overview` | 顶栏状态、最近 metric 时间 |
 | `/api/token-metadata` | 代币库 |
 
-### 15.4 重启行为
+### 15.5 股票价差模块（`app/spread/`）
+
+- 后台 asyncio 线程：`runner.start_spread_monitor()`（`main.py` 在 `spread_monitor.enabled: true` 时启动）
+- 连接器：Binance REST、Hyperliquid WS、SoDEX WS；引擎计算两两价差；可选 SQLite `data/dsm.db`
+- 看板通过 `/api/spread/board` 轮询内存快照（`SpreadState`），与 poll 主循环独立
+
+### 15.6 重启行为
 
 - SQLite 文件 `data/monitor.db` 持久化；重启后 `bootstrap()` 从库加载最近 metrics 到 `HistoryBuffer`
+- 2D/3D 不依赖本地历史长度，首轮 poll 后即从 Binance K 线填充
 - 不删除历史；仅内存缓存（费率周期 map、市值 cache）会重建
 
 ---

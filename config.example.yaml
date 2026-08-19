@@ -6,8 +6,8 @@ kline_interval: "5m"
 discovery:
   enabled: true
   mode: dynamic          # dynamic | static | hybrid
-  fixed_top_gainers: 30  # >0：固定 24h 涨幅榜前 N（剔除 TradFi 后），忽略 top_losers/min_change_15m
-  top_gainers: 30
+  fixed_top_gainers: 10  # >0：剔除 TradFi 后取 24h 涨幅榜前 N
+  top_gainers: 10
   top_losers: 0
   min_quote_volume_usdt: 5000000
   min_change_15m: 0.03     # fixed_top_gainers>0 时不生效
@@ -82,3 +82,44 @@ web:
   # 本地开发: 127.0.0.1 | Linux 公网无鉴权: 0.0.0.0（见 docs/DEPLOY.md）
   host: 127.0.0.1
   port: 8089
+
+# 股票价差监控（整合自 dex-spread-monitor）
+spread_monitor:
+  enabled: false
+  venues:
+    binance:
+      enabled: true
+    hyperliquid:
+      enabled: true
+      dex: xyz
+    sodex:
+      enabled: true
+      ws_url: "wss://mainnet-gw.sodex.dev/ws/perps"
+  discovery:
+    enabled: true
+    refresh_hours: 24
+    min_venues: 2
+  indices:
+    - {coin: "^NDX", label: "纳指100 (NDX)", market: US}
+    - {coin: "^N225", label: "日经225", market: JP}
+    - {coin: "^KS11", label: "韩国综合 (KOSPI)", market: KR}
+    - {coin: "BTC-USD", label: "BTC", market: CRYPTO}
+  symbols:
+    - {canonical: AAPL, market: US, binance: AAPLUSDT, hyperliquid: "xyz:AAPL", sodex: "AAPL-USD", multiplier: 1}
+    - {canonical: TSLA, market: US, binance: TSLAUSDT, hyperliquid: "xyz:TSLA", sodex: "TSLA-USD", multiplier: 1}
+    - {canonical: NVDA, market: US, binance: NVDAUSDT, hyperliquid: "xyz:NVDA", sodex: "NVDA-USD", multiplier: 1}
+    - {canonical: HOOD, market: US, binance: HOODUSDT, hyperliquid: "xyz:HOOD", sodex: "HOOD-USD", multiplier: 1}
+  spread:
+    stale_seconds: 10
+    alert_bps: 50
+    alert_sustain_seconds: 10
+    alert_cooldown_seconds: 300
+  alerts:
+    webhook_url: ""
+    telegram:
+      token: ""
+      chat_id: ""
+  storage:
+    sqlite_path: data/dsm.db
+    retention_days: 30
+    persist_quotes: false

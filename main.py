@@ -29,6 +29,7 @@ from app.services.symbol_discovery import SymbolDiscovery
 from app.services.token_metadata import TokenMetadataService
 from app.views.console_view import ConsoleView
 from app.views.export_view import ExportView
+from app.spread.runner import start_spread_monitor
 from app.views.web_server import run_web_server, start_web_server_background
 
 
@@ -113,6 +114,12 @@ def build_app(config: dict) -> PollController:
     )
 
 
+def start_background_services(config: dict) -> None:
+    spread_cfg = config.get("spread_monitor", {})
+    if spread_cfg.get("enabled"):
+        start_spread_monitor(spread_cfg)
+
+
 def cmd_start(config_path: str) -> None:
     """默认启动：Web 看板 + 后台 poll。"""
     config = load_config(config_path)
@@ -123,6 +130,7 @@ def cmd_start(config_path: str) -> None:
 
     # 先启动 Web，避免 bootstrap 中 CoinGecko 限流阻塞看板
     start_web_server_background(config)
+    start_background_services(config)
 
     log = logging.getLogger(__name__)
     log.info("Web 看板已启动 http://%s:%s", host, port)
@@ -145,6 +153,7 @@ def cmd_start(config_path: str) -> None:
 def cmd_web(config_path: str) -> None:
     config = load_config(config_path)
     setup_logging(config)
+    start_background_services(config)
     run_web_server(config)
 
 

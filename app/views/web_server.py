@@ -10,6 +10,7 @@ from flask import Flask, jsonify, send_from_directory
 from app.config import load_config
 from app.models.repositories import Repository
 from app.models.sqlite import connect, init_db
+from app.views.spread_api import build_spread_board
 from app.views.web_api import (
     build_anomalies,
     build_metrics,
@@ -40,6 +41,10 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     @app.route("/preview")
     def preview():
         return send_from_directory(WEB_ROOT, "preview.html")
+
+    @app.route("/spread-preview")
+    def spread_preview():
+        return send_from_directory(WEB_ROOT, "spread-preview.html")
 
     @app.route("/css/<path:filename>")
     def css(filename: str):
@@ -72,7 +77,7 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     def api_monitor_tokens():
         from flask import request
 
-        limit = int(request.args.get("limit", 100))
+        limit = int(request.args.get("limit", 10))
         detection_cfg = cfg.get("detection", {})
         return jsonify(build_monitor_tokens(repo, detection_cfg, limit=limit))
 
@@ -90,6 +95,10 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     @app.route("/api/health")
     def api_health():
         return jsonify({"status": "ok", "db": db_path})
+
+    @app.route("/api/spread/board")
+    def api_spread_board():
+        return jsonify(build_spread_board())
 
     return app
 

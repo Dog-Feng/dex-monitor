@@ -16,16 +16,21 @@
               │  0.0.0.0:8089         │  ← Flask 看板（只读）
               │  token-anomaly-monitor │
               │  ├─ Web 线程           │
-              │  └─ Poll 主线程        │  → Binance / CoinGecko
+              │  ├─ Poll 主线程        │  → Binance / CoinGecko
+              │  └─ Spread 后台线程*   │  → Binance / HL / SoDEX WS
               └───────────┬───────────┘
                           │
-                          ▼
-                   data/monitor.db
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+   data/monitor.db                  data/dsm.db*
 ```
 
-- **单进程**：`python main.py` = poll + Web（Web 使用 Waitress，适合生产轻量访问）
-- **看板 API 只读**：`/api/*` 仅查询 SQLite，无写接口
+\* `spread_monitor.enabled: true` 时启动价差监控；`dsm.db` 可选持久化。
+
+- **单进程**：`python main.py` = poll + Web +（可选）spread 后台 asyncio
+- **看板 API 只读**：`/api/*` 仅查询内存/SQLite，无写接口
 - **公网访问**：配置 `web.host: 0.0.0.0`，防火墙放行端口
+- **三 Tab**：代币异常监控（默认 10 币）| 股票价差监控 | 代币库
 
 ---
 
@@ -37,7 +42,7 @@
 | CPU / 内存 | 1 核 / 512MB 起（建议 1GB） |
 | 磁盘 | ≥ 5GB（SQLite + 日志增长） |
 | Python | 3.11+ |
-| 网络 | 出网访问 `fapi.binance.com`、`api.coingecko.com` |
+| 网络 | 出网访问 `fapi.binance.com`、`api.coingecko.com`；价差需 HL/SoDEX WebSocket |
 
 ---
 
@@ -93,7 +98,17 @@ sqlite:
   path: data/monitor.db
 ```
 
-可选：Telegram 告警、链上 `chain.enabled`、CoinGecko Pro `api_key` 等见 `config.example.yaml`。
+可选：Telegram 告警、链上 `chain.enabled`、CoinGecko Pro `api_key`、`spread_monitor`（价差 Tab）等见 `config.example.yaml`。
+
+生产建议同步：
+
+```yaml
+discovery:
+  fixed_top_gainers: 10
+
+spread_monitor:
+  enabled: true   # 不需要价差 Tab 时可 false
+```
 
 ### 3.5 首次启动验证
 
@@ -107,10 +122,11 @@ sudo -u tam .venv/bin/python main.py
 ```bash
 curl -s http://127.0.0.1:8089/api/health
 curl -s http://127.0.0.1:8089/api/overview
-curl -s http://127.0.0.1:8089/api/monitor-tokens | head -c 500
+curl -s "http://127.0.0.1:8089/api/monitor-tokens?limit=10" | head -c 500
+curl -s http://127.0.0.1:8089/api/spread/board | head -c 500
 ```
 
-浏览器：`http://<服务器公网IP>:8089`
+浏览器：`http://<服务器公网IP>:8089`（代币 Tab）、`/spread-preview` 可单独预览价差 UI。
 
 确认正常后 `Ctrl+C` 停止，改用 systemd 托管。
 

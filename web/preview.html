@@ -24,7 +24,7 @@
   </header>
 
   <nav class="main-tabs">
-    <button class="tab-btn active" data-tab="monitor">异常监控</button>
+    <button class="tab-btn active" data-tab="monitor">代币异常监控</button>
     <button class="tab-btn" data-tab="tokens">代币库</button>
   </nav>
 
@@ -37,7 +37,7 @@
     <section id="tab-monitor" class="tab-panel active">
       <div class="panel panel-table">
         <div class="panel-title">
-          <span>代币监控 · 一行一币</span>
+          <span>代币异常监控 · 一行一币</span>
           <span class="panel-meta">共 <strong id="token-count">0</strong> 个 · 更新于 <strong id="last-refresh">—</strong></span>
         </div>
         <div class="table-scroll">
@@ -45,6 +45,8 @@
             <colgroup>
               <col class="col-sym" />
               <col class="col-price" />
+              <col class="col-pct" />
+              <col class="col-pct" />
               <col class="col-pct" />
               <col class="col-pct" />
               <col class="col-fund" />
@@ -64,6 +66,12 @@
                 </th>
                 <th class="sortable" data-sort="change_24h">
                   <button type="button" class="sort-btn">24H <span class="sort-icon">↕</span></button>
+                </th>
+                <th class="sortable" data-sort="change_2d">
+                  <button type="button" class="sort-btn">2D <span class="sort-icon">↕</span></button>
+                </th>
+                <th class="sortable" data-sort="change_3d">
+                  <button type="button" class="sort-btn">3D <span class="sort-icon">↕</span></button>
                 </th>
                 <th class="sortable" data-sort="funding_rate">
                   <button type="button" class="sort-btn">费率 <span class="sort-icon">↕</span></button>

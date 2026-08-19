@@ -101,6 +101,8 @@ function renderRow(t) {
   const sel = selectedSymbol === t.symbol ? ' selected' : '';
   const c15 = t.change_15m ?? (t.change_15m_pct != null ? t.change_15m_pct / 100 : null);
   const c24 = t.change_24h ?? (t.change_24h_pct != null ? t.change_24h_pct / 100 : null);
+  const c2d = t.change_2d ?? (t.change_2d_pct != null ? t.change_2d_pct / 100 : null);
+  const c3d = t.change_3d ?? (t.change_3d_pct != null ? t.change_3d_pct / 100 : null);
   const tmUrl = tokenomistUrl({
     tokenomist_url: t.tokenomist_url,
     coingecko_id: t.coingecko_id,
@@ -114,6 +116,8 @@ function renderRow(t) {
     <td class="num" data-field="price">${fmtNum(t.price)}</td>
     <td class="num ${pctClass(c15)}" data-field="change_15m">${fmtPct(c15 != null ? c15 * 100 : null)}</td>
     <td class="num ${pctClass(c24)}" data-field="change_24h">${fmtPct(c24 != null ? c24 * 100 : null)}</td>
+    <td class="num ${pctClass(c2d)}" data-field="change_2d">${fmtPct(c2d != null ? c2d * 100 : null)}</td>
+    <td class="num ${pctClass(c3d)}" data-field="change_3d">${fmtPct(c3d != null ? c3d * 100 : null)}</td>
     <td class="num" data-field="funding_rate">${fmtFunding(t.funding_rate, t.funding_interval_hours)}</td>
     <td class="num" data-field="oi">${fmtNum(t.oi)}</td>
     <td class="num" data-field="oi_mcap_ratio">${t.oi_mcap_ratio != null ? Number(t.oi_mcap_ratio).toFixed(3) : '—'}</td>
@@ -128,7 +132,7 @@ function renderMonitorTable(flash) {
   const tbody = $('monitor-body');
   if (!tokenState.length) {
     tbody.innerHTML =
-      '<tr><td colspan="11" class="empty-row">暂无监控数据，请确认 poll 已运行</td></tr>';
+      '<tr><td colspan="13" class="empty-row">暂无监控数据，请确认 poll 已运行</td></tr>';
     $('token-count').textContent = '0';
     return;
   }
@@ -149,6 +153,8 @@ function renderMonitorTable(flash) {
       flashCell(row, 'price', t.price, prev.price, fmtNum);
       flashPctCell(row, 'change_15m', t.change_15m, prev.change_15m);
       flashPctCell(row, 'change_24h', t.change_24h, prev.change_24h);
+      flashPctCell(row, 'change_2d', t.change_2d, prev.change_2d);
+      flashPctCell(row, 'change_3d', t.change_3d, prev.change_3d);
       if (t.funding_rate !== prev.funding_rate) {
         updateCell(
           row,
@@ -242,7 +248,7 @@ async function refresh() {
   try {
     const [overview, tokens, metadata] = await Promise.all([
       fetchJson('/api/overview'),
-      fetchJson('/api/monitor-tokens?limit=100'),
+      fetchJson('/api/monitor-tokens?limit=10'),
       fetchJson('/api/token-metadata?limit=100'),
     ]);
 

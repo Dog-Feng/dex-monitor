@@ -1,0 +1,130 @@
+/* 股票价差 Tab — 复用 console / monitor 变量与表格风格 */
+
+.spread-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.45fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.spread-side.stack { gap: 14px; }
+
+@media (max-width: 1280px) {
+  .spread-layout { grid-template-columns: 1fr; }
+}
+
+.tbl-spread {
+  min-width: 980px;
+}
+
+.tbl-spread col.sp-sym { width: 72px; }
+.tbl-spread col.sp-venue { width: 88px; }
+.tbl-spread col.sp-spread { width: 140px; }
+.tbl-spread col.sp-chg { width: 120px; }
+.tbl-spread col.sp-fund { width: 148px; }
+.tbl-spread col.sp-sess { width: 72px; }
+.tbl-spread col.sp-market { width: 96px; }
+
+.tbl-spread tbody tr { cursor: default; }
+.tbl-spread tbody tr:hover td { background: var(--panel2); }
+
+.tbl-spread-idx {
+  min-width: 0;
+  width: 100%;
+}
+
+.tbl-spread-idx col.si-name { width: 38%; }
+.tbl-spread-idx col.si-price { width: 22%; }
+.tbl-spread-idx col.si-chg { width: 22%; }
+.tbl-spread-idx col.si-sess { width: 18%; }
+.tbl-spread-idx col.si-market { width: 20%; }
+
+.tbl-spread-idx tbody tr { cursor: default; }
+
+.spread-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--mut);
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+.spread-fund-item {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.spread-fund-item:last-child { margin-right: 0; }
+
+.warn-spread { color: var(--yel); font-weight: 600; }
+
+.stale { color: var(--mut); opacity: 0.55; }
+
+.sess-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  color: var(--mut2);
+  white-space: nowrap;
+}
+
+.sess-tag.open {
+  background: #22c55e14;
+  border-color: #22c55e40;
+  color: #86efac;
+}
+
+.market-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--mut2);
+  border: 1px dashed var(--border2);
+  white-space: nowrap;
+}
+
+.market-tag.open {
+  color: #86efac;
+  border-color: #22c55e50;
+}
+
+.spread-legend {
+  padding: 14px 16px;
+}
+
+.spread-legend .legend-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--mut2);
+  line-height: 1.5;
+}
+
+.spread-legend .legend-list b {
+  color: var(--txt);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.spread-legend .note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--mut);
+  line-height: 1.5;
+}
+
+#spread-disabled code {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+  color: #fcd34d;
+}

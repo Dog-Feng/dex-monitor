@@ -6,6 +6,7 @@
   <title>代币异常监控台</title>
   <link rel="stylesheet" href="/css/console.css" />
   <link rel="stylesheet" href="/css/monitor.css" />
+  <link rel="stylesheet" href="/css/spread.css" />
 </head>
 <body>
   <header class="header">
@@ -23,7 +24,8 @@
   </header>
 
   <nav class="main-tabs">
-    <button class="tab-btn active" data-tab="monitor">异常监控</button>
+    <button class="tab-btn active" data-tab="monitor">代币异常监控</button>
+    <button class="tab-btn" data-tab="spread">股票价差监控</button>
     <button class="tab-btn" data-tab="tokens">代币库</button>
   </nav>
 
@@ -31,7 +33,7 @@
     <section id="tab-monitor" class="tab-panel active">
       <div class="panel panel-table">
         <div class="panel-title">
-          <span>代币监控 · 一行一币</span>
+          <span>代币异常监控 · 一行一币</span>
           <span class="panel-meta">共 <strong id="token-count">0</strong> 个 · 更新于 <strong id="last-refresh">—</strong></span>
         </div>
         <div class="table-scroll">
@@ -39,6 +41,8 @@
             <colgroup>
               <col class="col-sym" />
               <col class="col-price" />
+              <col class="col-pct" />
+              <col class="col-pct" />
               <col class="col-pct" />
               <col class="col-pct" />
               <col class="col-fund" />
@@ -59,6 +63,12 @@
                 <th class="sortable" data-sort="change_24h">
                   <button type="button" class="sort-btn">24H <span class="sort-icon">↕</span></button>
                 </th>
+                <th class="sortable" data-sort="change_2d">
+                  <button type="button" class="sort-btn">2D <span class="sort-icon">↕</span></button>
+                </th>
+                <th class="sortable" data-sort="change_3d">
+                  <button type="button" class="sort-btn">3D <span class="sort-icon">↕</span></button>
+                </th>
                 <th class="sortable" data-sort="funding_rate">
                   <button type="button" class="sort-btn">费率 <span class="sort-icon">↕</span></button>
                 </th>
@@ -75,7 +85,7 @@
               </tr>
             </thead>
             <tbody id="monitor-body">
-              <tr><td colspan="11" class="empty-row">加载中…</td></tr>
+              <tr><td colspan="13" class="empty-row">加载中…</td></tr>
             </tbody>
           </table>
         </div>
@@ -84,6 +94,108 @@
       <div class="panel detail-panel">
         <div class="panel-title">归因说明 <span class="panel-meta" id="detail-symbol">点击表格行查看</span></div>
         <div id="narrative" class="narrative-box">—</div>
+      </div>
+    </section>
+
+    <section id="tab-spread" class="tab-panel">
+      <div id="spread-disabled" class="static-banner warn" hidden>
+        股票价差监控未启用 — 请在 <code>config.yaml</code> 中设置 <code>spread_monitor.enabled: true</code> 并重启服务
+      </div>
+
+      <div id="spread-content" class="spread-layout">
+        <div class="panel panel-table">
+          <div class="panel-title">
+            <span>代币化股票 · 跨所标记价差</span>
+            <span class="panel-meta">
+              <span id="spread-sync-text">—</span> ·
+              <span id="spread-count">0</span> 个 ·
+              更新于 <strong id="spread-refresh">—</strong>
+            </span>
+          </div>
+          <div class="table-scroll">
+            <table class="tbl-monitor tbl-spread" id="tbl-spread">
+              <colgroup>
+                <col class="sp-sym" />
+                <col class="sp-venue" />
+                <col class="sp-venue" />
+                <col class="sp-venue" />
+                <col class="sp-spread" />
+                <col class="sp-chg" />
+                <col class="sp-fund" />
+                <col class="sp-sess" />
+                <col class="sp-market" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>交易对</th>
+                  <th>Binance</th>
+                  <th>Hyperliquid</th>
+                  <th>SoDEX</th>
+                  <th class="sortable" data-sort="maxAbs">
+                    <button type="button" class="sort-btn">价差最大 <span class="sort-icon">↕</span></button>
+                  </th>
+                  <th class="sortable" data-sort="chgSort">
+                    <button type="button" class="sort-btn">24H <span class="sort-icon">↕</span></button>
+                  </th>
+                  <th class="sortable" data-sort="fundingAbs">
+                    <button type="button" class="sort-btn">费率(1h) <span class="sort-icon">↕</span></button>
+                  </th>
+                  <th class="sortable" data-sort="sessionRank">
+                    <button type="button" class="sort-btn">时段 <span class="sort-icon">↕</span></button>
+                  </th>
+                  <th>交易时间</th>
+                </tr>
+              </thead>
+              <tbody id="spread-body">
+                <tr><td colspan="9" class="empty-row">加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="spread-side stack">
+          <div class="panel panel-table">
+            <div class="panel-title">
+              <span>全球重要指数</span>
+              <span class="panel-meta">Yahoo Finance</span>
+            </div>
+            <div class="table-scroll">
+              <table class="tbl-monitor tbl-spread-idx">
+                <colgroup>
+                  <col class="si-name" />
+                  <col class="si-price" />
+                  <col class="si-chg" />
+                  <col class="si-sess" />
+                  <col class="si-market" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>指数</th>
+                    <th>价格</th>
+                    <th>24H</th>
+                    <th>时段</th>
+                    <th>交易时间</th>
+                  </tr>
+                </thead>
+                <tbody id="spread-index-body">
+                  <tr><td colspan="5" class="empty-row">等待指数数据…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel spread-legend">
+            <div class="panel-title">交易时间段说明 · 北京时间 (UTC+8)</div>
+            <ul class="legend-list">
+              <li><b>美股</b> 夏令时 盘中 21:30–次日 04:00 · 冬令时 22:30–次日 05:00</li>
+              <li><b>日经</b> 08:00–10:30 · 11:30–14:00（午休 10:30–11:30）</li>
+              <li><b>韩股</b> 08:00–14:30</li>
+              <li><b>A股</b> 09:30–11:30 · 13:00–15:00（午休 11:30–13:00）</li>
+              <li><b>加密</b> 7×24 全天</li>
+            </ul>
+            <p class="note">周末及节假日休市未计入；「盘中/盘前/盘后/休市」按各市场交易所时区实时判定。</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -120,5 +232,6 @@
   </main>
 
   <script src="/js/app.js"></script>
+  <script src="/js/spread.js"></script>
 </body>
 </html>

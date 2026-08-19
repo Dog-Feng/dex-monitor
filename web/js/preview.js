@@ -6,6 +6,8 @@ const MOCK_TOKENS = [
     base: 'GPS',
     price: 0.01234,
     change_24h: 12.6,
+    change_2d: 8.4,
+    change_3d: 15.2,
     change_15m: -3.52,
     funding_rate: -0.000068,
     funding_interval_hours: 8,
@@ -23,6 +25,8 @@ const MOCK_TOKENS = [
     base: 'PORTAL',
     price: 0.0892,
     change_24h: 18.4,
+    change_2d: 22.1,
+    change_3d: 31.5,
     change_15m: 11.25,
     funding_rate: 0.000512,
     funding_interval_hours: 4,
@@ -40,6 +44,8 @@ const MOCK_TOKENS = [
     base: 'ACE',
     price: 1.245,
     change_24h: -15.2,
+    change_2d: -8.6,
+    change_3d: -12.3,
     change_15m: -9.18,
     funding_rate: 0.000891,
     funding_interval_hours: 8,
@@ -57,6 +63,8 @@ const MOCK_TOKENS = [
     base: 'VELVET',
     price: 0.00341,
     change_24h: -28.5,
+    change_2d: -35.2,
+    change_3d: -42.8,
     change_15m: 2.08,
     funding_rate: -0.001842,
     funding_interval_hours: 1,
@@ -74,6 +82,8 @@ const MOCK_TOKENS = [
     base: 'CAKE',
     price: 2.156,
     change_24h: 4.2,
+    change_2d: 6.8,
+    change_3d: 9.1,
     change_15m: 0.65,
     funding_rate: 0.000102,
     funding_interval_hours: 8,
@@ -212,6 +222,8 @@ function renderRow(t) {
     <td class="num" data-field="price">${fmtNum(t.price)}</td>
     <td class="num ${pctClass(t.change_15m)}" data-field="change_15m">${fmtPct(t.change_15m)}</td>
     <td class="num ${pctClass(t.change_24h)}" data-field="change_24h">${fmtPct(t.change_24h)}</td>
+    <td class="num ${pctClass(t.change_2d)}" data-field="change_2d">${fmtPct(t.change_2d)}</td>
+    <td class="num ${pctClass(t.change_3d)}" data-field="change_3d">${fmtPct(t.change_3d)}</td>
     <td class="num" data-field="funding_rate">${fmtFunding(t.funding_rate, t.funding_interval_hours)}</td>
     <td class="num" data-field="oi">${fmtNum(t.oi)}</td>
     <td class="num" data-field="oi_mcap_ratio">${Number(t.oi_mcap_ratio).toFixed(3)}</td>
@@ -281,6 +293,8 @@ function tickMockUpdate() {
     t.price = Math.max(0.000001, t.price * (1 + drift));
     t.change_15m += (Math.random() - 0.5) * 0.35;
     t.change_24h += (Math.random() - 0.5) * 0.08;
+    t.change_2d += (Math.random() - 0.5) * 0.06;
+    t.change_3d += (Math.random() - 0.5) * 0.05;
     t.funding_rate += (Math.random() - 0.5) * 0.00005;
     t.oi = Math.max(1000, t.oi * (1 + (Math.random() - 0.5) * 0.02));
     t.whale_ls = Math.max(0.5, t.whale_ls + (Math.random() - 0.5) * 0.06);
@@ -292,6 +306,8 @@ function tickMockUpdate() {
     updateCell(tr, 'price', fmtNum(t.price), priceFlash);
     setPctCell(tr, 'change_15m', t.change_15m);
     setPctCell(tr, 'change_24h', t.change_24h);
+    setPctCell(tr, 'change_2d', t.change_2d);
+    setPctCell(tr, 'change_3d', t.change_3d);
     updateCell(tr, 'funding_rate', fmtFunding(t.funding_rate, t.funding_interval_hours), null);
     updateCell(tr, 'oi', fmtNum(t.oi), priceFlash);
     updateCell(tr, 'whale_ls', Number(t.whale_ls).toFixed(2), null);

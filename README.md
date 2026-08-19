@@ -1,6 +1,6 @@
 # Token Anomaly Monitor
 
-Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空** → **规则归因** → SQLite 持久化 → **Web 看板**。
+Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空** → **规则归因** → SQLite 持久化 → **Web 看板**（含 **股票价差监控** Tab）。
 
 面向 alt 短时暴涨/暴跌监控（拉盘、轧空、清多、解锁供应等），默认优先 **BSC 链** 合约解析（CoinGecko）。
 
@@ -10,12 +10,14 @@ Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空*
 
 | 模块 | 说明 |
 |------|------|
-| 动态选币 | Binance 24h 涨/跌幅 Top N → 15m 涨跌幅二次筛选 |
+| 动态选币 | 24h 涨幅榜 Top **10**（剔除 TradFi 代币化股票），`fixed_top_gainers` 可配 |
 | 合约数据 | K 线、OI、资金费率、大户多空比、OI/市值 |
+| 涨跌幅 | 15M/24H 来自 metrics + Binance ticker；**2D/3D 来自 Binance 1h K 线**（滚动 48h/72h） |
 | 异常检测 | SURGE / DUMP / 杠杆过热 |
 | 归因 | 轧空、拉盘、清多、解锁供应等 tags + 中文 narrative |
 | 代币元数据 | CoinGecko 解析合约 → `token_metadata` 持久化 |
-| Web 看板 | 代币一行监控表：指标 + 规则结论 + 归因详情；10s 自动刷新 |
+| 股票价差 | Binance / Hyperliquid / SoDEX 代币化股票标记价差 + 全球指数（可选 `spread_monitor`） |
+| Web 看板 | 三 Tab：代币异常监控 / 股票价差监控 / 代币库；10s 刷新 |
 
 ---
 
@@ -55,7 +57,7 @@ python main.py
 | `python main.py start` | 同上 |
 | `python main.py poll` | 仅采集，不启动看板 |
 | `python main.py web` | 仅看板（只读 SQLite） |
-| `python main.py discover --top 30` | 查看当前涨幅榜候选 |
+| `python main.py discover --top 10` | 查看当前涨幅榜候选 |
 | `python main.py resolve CAKE` | 手动解析某币 BSC 合约 |
 | `python main.py metadata` | 终端查看代币库 |
 | `python main.py report --days 7` | 导出异常事件 CSV |
@@ -73,7 +75,8 @@ python main.py
 discovery:
   enabled: true
   mode: dynamic              # dynamic | static | hybrid
-  min_change_15m: 0.03       # 15m |涨跌| >= 3% 才分析
+  fixed_top_gainers: 10      # 剔除 TradFi 后取 24h 涨幅榜前 N
+  exclude_tradfi: true       # 剔除代币化股票永续
   min_quote_volume_usdt: 5000000
 
 coingecko:
@@ -82,6 +85,17 @@ coingecko:
     - binance-smart-chain    # BSC 优先
     - base
     - ethereum
+
+# 股票价差监控（默认关闭；启用后需 aiohttp / websockets / aiosqlite）
+spread_monitor:
+  enabled: false
+  venues:
+    binance: { enabled: true }
+    hyperliquid: { enabled: true, dex: xyz }
+    sodex: { enabled: true, ws_url: "wss://mainnet-gw.sodex.dev/ws/perps" }
+  discovery:
+    enabled: true
+    min_venues: 2
 
 web:
   enabled: true
@@ -99,7 +113,8 @@ alert:
 
 | 路径 | 说明 |
 |------|------|
-| `data/monitor.db` | SQLite 主库 |
+| `data/monitor.db` | SQLite 主库（metrics、异常、代币库） |
+| `data/dsm.db` | 股票价差历史（`spread_monitor` 启用时） |
 | `data/app.log` | 运行日志 |
 | `data/wallets.json` | 链上 L1 监控地址（可选） |
 | `data/cex_hot_wallets.json` | CEX 热钱包（可选） |
@@ -112,7 +127,8 @@ alert:
 
 | Tab | 内容 |
 |-----|------|
-| **异常监控** | 一行一币：价格、15M/24H、费率（含结算周期 8h/4h/1h）、OI、OI÷市值、大户多空比、**分析结论**；支持 15M/24H/费率排序；点击行查看完整归因 |
+| **代币异常监控** | 一行一币（默认 **10** 个）：价格、15M/24H/**2D/3D**、费率、OI、OI÷市值、大户多空比、解锁看板、结论；支持排序；点击行查看归因 |
+| **股票价差监控** | 代币化股票跨所标记价差 + 全球指数（需 `spread_monitor.enabled: true`） |
 | **代币库** | `token_metadata` 持久化合约（BSC 优先） |
 
 看板 **无登录鉴权**，只读 API；**不应在公网暴露写操作**（本项目无写接口）。
@@ -123,16 +139,21 @@ alert:
 |------|------|
 | `GET /api/health` | 健康检查 |
 | `GET /api/overview` | 统计与最近采集时间 |
-| `GET /api/monitor-tokens` | **主表数据**：指标 + 结论 + narrative |
+| `GET /api/monitor-tokens?limit=10` | **主表数据**：指标 + 2D/3D + 结论 + narrative |
+| `GET /api/spread/board` | 股票价差看板数据（quotes / indices / sync） |
 | `GET /api/metrics` | 各 symbol 最新 metrics 快照 |
 | `GET /api/anomalies?days=7` | 历史异常事件 |
 | `GET /api/token-metadata` | 代币库 |
 
-前端每 **10 秒**拉取；指标采集默认每 **60 秒**（`poll_interval_seconds`）。
+前端每 **10 秒**拉取；指标采集默认每 **60 秒**（`poll_interval_seconds`）。2D/3D 在每轮 poll 中通过 Binance **1h K 线**更新。
 
-### 静态 UI 预览（无需启动服务）
+### 静态 UI 预览（无需 poll）
 
-双击打开 **`web/static-demo.html`** 可离线预览布局与 Mock 交互；正式数据以 `/` 为准。
+| 路径 | 说明 |
+|------|------|
+| `/preview` | 代币异常监控 Mock |
+| `/spread-preview` | 股票价差监控 Mock |
+| `web/static-demo.html` | 离线双击预览（旧版布局） |
 
 ### 重启与数据
 
@@ -146,13 +167,18 @@ alert:
 token-anomaly-monitor/
 ├── main.py                 # 入口
 ├── config.yaml             # 运行配置
-├── app/                    # MVC 业务代码
-├── web/                    # 看板静态页（index.html、monitor.css、static-demo.html）
+├── app/
+│   ├── spread/             # 股票价差监控（Binance/HL/SoDEX）
+│   ├── controllers/        # poll / detect / explain
+│   ├── fetchers/
+│   ├── models/
+│   └── views/              # web_api、web_server、spread_api
+├── web/                    # index.html、spread-preview、css/js
 ├── data/                   # SQLite + 日志（运行时生成）
 ├── deploy/                 # systemd 等部署模板
 └── docs/
-    ├── DESIGN.md           # 设计文档
-    └── DEPLOY.md           # Linux 公网部署
+    ├── DESIGN.md
+    └── DEPLOY.md
 ```
 
 ---

@@ -1,4 +1,4 @@
-# Token Anomaly Monitor — 设计开发文档
+# DEX Monitor — 设计开发文档
 
 > 版本：v0.1  
 > 目标：监控代币短时暴涨/暴跌，结合合约数据与定向链上数据做可解释归因。  
@@ -98,7 +98,7 @@ config.yaml
 ## 3. 目录结构
 
 ```
-token-anomaly-monitor/
+dex-monitor/
 ├── main.py                      # 入口：解析 CLI，启动 Controller
 ├── config.yaml                  # 运行配置（示例见 config.example.yaml）
 ├── config.example.yaml

@@ -1,0 +1,17 @@
+[Unit]
+Description=DEX Monitor (poll + web dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dex-monitor
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/dex-monitor/.venv/bin/python main.py
+Restart=on-failure
+RestartSec=10
+
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-# Token Anomaly Monitor
+# DEX Monitor
 
 Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空** → **规则归因** → SQLite 持久化 → **Web 看板**（含 **股票价差监控** Tab）。
 
@@ -32,8 +32,8 @@ Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空*
 ## 快速开始（本地）
 
 ```bash
-git clone <your-repo> token-anomaly-monitor
-cd token-anomaly-monitor
+git clone https://github.com/Dog-Feng/token-anomaly-monitor.git dex-monitor
+cd dex-monitor
 
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
@@ -164,7 +164,7 @@ alert:
 ## 目录结构
 
 ```
-token-anomaly-monitor/
+dex-monitor/
 ├── main.py                 # 入口
 ├── config.yaml             # 运行配置
 ├── app/

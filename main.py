@@ -313,7 +313,7 @@ def cmd_once(config_path: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Token Anomaly Monitor — 默认启动 poll + Web 看板",
+        description="DEX Monitor — 默认启动 poll + Web 看板",
     )
     parser.add_argument("-c", "--config", default="config.yaml", help="Config file path")
     sub = parser.add_subparsers(dest="command")

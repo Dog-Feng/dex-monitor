@@ -22,7 +22,7 @@ class BinanceFetcher:
         self.kline_interval = kline_interval
         self.rate_limiter = rate_limiter or RateLimiter(0.12)
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": "token-anomaly-monitor/0.1"})
+        self.session.headers.update({"User-Agent": "dex-monitor/0.1"})
         self._funding_interval_cache: dict[str, int] = {}
         self._funding_interval_fetched_at = 0.0
         self._symbol_meta: dict[str, dict[str, Any]] = {}

@@ -1,1 +1,1 @@
-"""Token Anomaly Monitor application package."""
+"""DEX Monitor application package."""

@@ -95,6 +95,190 @@
         </div>
       </div>
 
+      <div class="panel analysis-legend">
+        <div class="panel-title">
+          <span>指标解读 · 分析说明</span>
+          <span class="panel-meta">根据价格、OI、费率、OI÷市值、大户多空比交叉得出结论</span>
+        </div>
+
+        <h3 class="analysis-h">1. 当前看板结论怎么来的</h3>
+        <p class="analysis-lead">
+          上方「结论」列由规则引擎生成。核心是 <b>15 分钟涨跌 + 30 分钟 OI 变化 + 资金费率</b>；OI÷市值用来判断杠杆是否过热。大户多空比目前只展示，不单独触发结论，用来辅助确认拥挤方向。
+        </p>
+        <div class="table-scroll">
+          <table class="tbl-analysis-guide">
+            <thead>
+              <tr>
+                <th>根据什么</th>
+                <th>得到什么结论</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>价涨 + OI 下降 + 费率 ≤ 0</td>
+                <td>空头被平或爆仓，持仓在降 → <b>轧空 / 逼空</b>（<code>short_squeeze</code>）</td>
+              </tr>
+              <tr>
+                <td>价涨 + OI 上升 + 费率 &gt; 0</td>
+                <td>有人在加多、费率变贵 → <b>主动拉盘追多</b>（<code>long_chase</code>）</td>
+              </tr>
+              <tr>
+                <td>价涨 + 费率极负（如 ≤ -0.5%）</td>
+                <td>空头极度拥挤、空头在给多头付费 → <b>高位轧空末段，也警惕反转</b></td>
+              </tr>
+              <tr>
+                <td>价跌 + OI 下降 + 费率 &gt; 0</td>
+                <td>多头被打掉、持仓在降 → <b>多头清算 / 清多</b>（<code>long_liquidation</code>）</td>
+              </tr>
+              <tr>
+                <td>价跌 + OI 上升 + 费率 &lt; 0</td>
+                <td>下跌时还有人在加空 → <b>加空砸盘</b>（<code>short_build</code>）</td>
+              </tr>
+              <tr>
+                <td>OI÷市值 ≥ 0.2</td>
+                <td>合约名义持仓相对流通盘过大 → <b>杠杆过热，波动容易被放大</b></td>
+              </tr>
+              <tr>
+                <td>OI÷市值 ≥ 0.3，或费率极端</td>
+                <td>在暴涨/暴跌之上再升一档 → <b>严重程度 HIGH</b>，优先盯清算</td>
+              </tr>
+              <tr>
+                <td>解锁窗口内，或团队地址充值 CEX</td>
+                <td>供应冲击 / 出货迹象 → <b>警惕解锁砸盘或拉高出货</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="analysis-h">2. OI、OI÷市值、大户多空比怎么读</h3>
+        <div class="table-scroll">
+          <table class="tbl-analysis-guide">
+            <thead>
+              <tr>
+                <th>指标</th>
+                <th>根据什么</th>
+                <th>怎么理解</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>OI</td>
+                <td>价涨且 OI 升</td>
+                <td>新仓在堆积，趋势靠杠杆推动，后续回撤时清算会更猛</td>
+              </tr>
+              <tr>
+                <td>OI</td>
+                <td>价涨且 OI 降</td>
+                <td>仓位在关，更像空头平仓/爆仓，而不是新多进场</td>
+              </tr>
+              <tr>
+                <td>OI</td>
+                <td>价跌且 OI 降</td>
+                <td>多头仓位被打掉，下跌由清算驱动</td>
+              </tr>
+              <tr>
+                <td>OI</td>
+                <td>价跌且 OI 升</td>
+                <td>空头在加仓，下跌可能还有延续</td>
+              </tr>
+              <tr>
+                <td>OI÷市值</td>
+                <td>比值偏低（如 &lt; 0.1）</td>
+                <td>杠杆不拥挤，同样涨跌幅的清算风险相对小</td>
+              </tr>
+              <tr>
+                <td>OI÷市值</td>
+                <td>比值 ≥ 0.2 / ≥ 0.3</td>
+                <td>小盘高杠杆；同样 8% 波动更容易连环清算，结论更倾向「过热」</td>
+              </tr>
+              <tr>
+                <td>大户多空比</td>
+                <td>&gt; 1（如 1.8）</td>
+                <td>持多大户数多于持空；若同时价涨+OI 升，大户拥挤做多，向下清算风险更大</td>
+              </tr>
+              <tr>
+                <td>大户多空比</td>
+                <td>&lt; 1（如 0.7）</td>
+                <td>大户偏空；若同时价跌+OI 升，空头合力更强。比值接近 1 则多空大致均衡</td>
+              </tr>
+              <tr>
+                <td>组合</td>
+                <td>OI÷市值高 + 大户多空比很高 + 正费率</td>
+                <td>多头拥挤且杠杆大，一旦转跌优先按清多处理，而不是普通回调</td>
+              </tr>
+              <tr>
+                <td>组合</td>
+                <td>OI÷市值高 + 大户多空比很低 + 负费率</td>
+                <td>空头拥挤，价格拉升时更像轧空，而不是基本面驱动的慢牛</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="analysis-h">3. 合约净流入 / 现货净流入（交叉验证）</h3>
+        <p class="analysis-lead">
+          合约净流入看永续谁在主动成交；现货净流入看现货谁在主动成交。口径是主动买 − 主动卖（USD），不是链上充提。接入后用来验证上面的轧空 / 拉盘 / 清多是否扎实。
+        </p>
+        <div class="table-scroll">
+          <table class="tbl-analysis-guide">
+            <thead>
+              <tr>
+                <th>价格</th>
+                <th>合约净流入</th>
+                <th>现货净流入</th>
+                <th>更可能的含义</th>
+                <th>对现有结论的用法</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="up">涨</td>
+                <td class="up">+</td>
+                <td class="up">+</td>
+                <td>现货+合约一起买，真拉盘</td>
+                <td>强化「主动拉盘追多」</td>
+              </tr>
+              <tr>
+                <td class="up">涨</td>
+                <td class="up">+</td>
+                <td class="down">−</td>
+                <td>合约在追，现货在出 → 高位出货 / 轧空末段</td>
+                <td>「轧空」时降置信度，警惕出货</td>
+              </tr>
+              <tr>
+                <td class="up">涨</td>
+                <td class="down">−</td>
+                <td class="up">+</td>
+                <td>现货买、合约减仓或空头平 → 偏轧空</td>
+                <td>更接近健康逼空，而非杠杆堆多</td>
+              </tr>
+              <tr>
+                <td class="down">跌</td>
+                <td class="down">−</td>
+                <td class="down">−</td>
+                <td>现货+合约一起卖，双杀砸盘</td>
+                <td>强化砸盘 / 解锁砸盘判断</td>
+              </tr>
+              <tr>
+                <td class="down">跌</td>
+                <td class="down">−</td>
+                <td class="up">+</td>
+                <td>合约清多，现货有人接</td>
+                <td>对应「多头清算」，下跌或接近尾声</td>
+              </tr>
+              <tr>
+                <td class="down">跌</td>
+                <td class="up">+</td>
+                <td class="down">−</td>
+                <td>现货出货，合约在抄底 / 开多</td>
+                <td>现货抛压仍在，反弹需谨慎</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="analysis-note">第 3 节数据来自 CoinGlass，看板尚未接入这两列；第 1、2 节与当前「结论」列规则一致。</p>
+      </div>
+
       <div class="panel detail-panel">
         <div class="panel-title">归因说明 <span class="panel-meta" id="detail-symbol">点击表格行查看</span></div>
         <div id="narrative" class="narrative-box">—</div>

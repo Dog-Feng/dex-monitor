@@ -130,7 +130,7 @@ mkdir -p data
 ```bash
 curl -s http://127.0.0.1:8089/api/health
 curl -s http://127.0.0.1:8089/api/overview
-curl -s "http://127.0.0.1:8089/api/monitor-tokens?limit=10" | head -c 500
+curl -s http://127.0.0.1:8089/api/monitor-tokens | head -c 500
 curl -s http://127.0.0.1:8089/api/spread/board | head -c 500
 ```
 

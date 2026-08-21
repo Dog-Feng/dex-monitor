@@ -27,7 +27,7 @@
 
 .tbl-monitor {
   width: 100%;
-  min-width: 1440px;
+  min-width: 1540px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13px;
@@ -42,6 +42,7 @@
 .tbl-monitor col.col-whale { width: 100px; }
 .tbl-monitor col.col-mcap { width: 88px; }
 .tbl-monitor col.col-unlock-board { width: 80px; }
+.tbl-monitor col.col-info-board { width: 108px; }
 
 .tbl-monitor th,
 .tbl-monitor td {

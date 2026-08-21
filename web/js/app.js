@@ -108,11 +108,16 @@ function renderRow(t) {
     coingecko_id: t.coingecko_id,
     base: t.base,
   });
+  const name = t.base || t.symbol.replace(/USDT$/, '');
   const linkCell = tmUrl
-    ? `<a class="tk-ext-link" href="${tmUrl}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看 ${t.base || t.symbol} 解锁看板" onclick="event.stopPropagation()">解锁 ↗</a>`
+    ? `<a class="tk-ext-link" href="${tmUrl}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看 ${name} 解锁看板" onclick="event.stopPropagation()">解锁 ↗</a>`
+    : '—';
+  const infoUrl = coinglassUrl(name);
+  const infoCell = infoUrl
+    ? `<a class="tk-ext-link" href="${infoUrl}" target="_blank" rel="noopener noreferrer" title="在 CoinGlass 查看 ${name} 代币信息" onclick="event.stopPropagation()">信息 ↗</a>`
     : '—';
   return `<tr data-symbol="${t.symbol}" class="${sel}">
-    <td data-field="base">${t.base || t.symbol.replace('USDT', '')}</td>
+    <td data-field="base">${name}</td>
     <td class="num" data-field="price">${fmtNum(t.price)}</td>
     <td class="num ${pctClass(c15)}" data-field="change_15m">${fmtPct(c15 != null ? c15 * 100 : null)}</td>
     <td class="num ${pctClass(c24)}" data-field="change_24h">${fmtPct(c24 != null ? c24 * 100 : null)}</td>
@@ -124,6 +129,7 @@ function renderRow(t) {
     <td class="num" data-field="whale_ls">${t.whale_long_short_ratio != null ? Number(t.whale_long_short_ratio).toFixed(2) : '—'}</td>
     <td class="num" data-field="market_cap">${t.market_cap_display || '—'}</td>
     <td class="tk-link-cell" data-field="unlock_board">${linkCell}</td>
+    <td class="tk-link-cell" data-field="info_board">${infoCell}</td>
     <td class="cell-conclusion" data-field="conclusion">${t.conclusion || '—'}</td>
   </tr>`;
 }
@@ -132,7 +138,7 @@ function renderMonitorTable(flash) {
   const tbody = $('monitor-body');
   if (!tokenState.length) {
     tbody.innerHTML =
-      '<tr><td colspan="13" class="empty-row">暂无监控数据，请确认 poll 已运行</td></tr>';
+      '<tr><td colspan="14" class="empty-row">暂无监控数据，请确认 poll 已运行</td></tr>';
     $('token-count').textContent = '0';
     return;
   }
@@ -218,6 +224,11 @@ function tokenomistUrl(m) {
   return slug ? `https://tokenomist.ai/${slug}` : '';
 }
 
+function coinglassUrl(name) {
+  const ticker = (name || '').trim();
+  return ticker ? `https://www.coinglass.com/zh/currencies/${encodeURIComponent(ticker)}` : '';
+}
+
 function renderTokensTable(list) {
   if (!list.length) {
     $('tokens-body').innerHTML =
@@ -248,7 +259,7 @@ async function refresh() {
   try {
     const [overview, tokens, metadata] = await Promise.all([
       fetchJson('/api/overview'),
-      fetchJson('/api/monitor-tokens?limit=10'),
+      fetchJson('/api/monitor-tokens'),
       fetchJson('/api/token-metadata?limit=100'),
     ]);
 

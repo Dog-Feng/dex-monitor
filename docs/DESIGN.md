@@ -607,7 +607,7 @@ Python **3.11+**（使用 `list[str]` 等类型注解）。
 
 ### 15.1 页面结构
 
-- **代币异常监控**：默认 **10** 个 symbol（`discovery.fixed_top_gainers`，剔除 TradFi）；一行一币；含 15M/24H/**2D/3D**、费率、OI、结论；支持列排序
+- **代币异常监控**：条数由 `discovery.fixed_top_gainers` 决定（剔除 TradFi）；一行一币；含 15M/24H/**2D/3D**、费率、OI、解锁看板、**代币信息看板（CoinGlass）**、结论；支持列排序
 - **股票价差监控**：Binance / Hyperliquid / SoDEX 代币化股票标记价差 + 全球指数（`spread_monitor.enabled`）
 - **代币库**：`token_metadata` 只读列表
 - 静态预览：`/preview`（代币）、`/spread-preview`（价差）
@@ -630,7 +630,7 @@ Python **3.11+**（使用 `list[str]` 等类型注解）。
 
 | 路径 | 用途 |
 |------|------|
-| `/api/monitor-tokens?limit=10` | 监控主表（含 2D/3D、结论） |
+| `/api/monitor-tokens` | 监控主表（含 2D/3D、结论）；默认 `limit` = `discovery.fixed_top_gainers` |
 | `/api/spread/board` | 股票价差 quotes / indices / sync |
 | `/api/overview` | 顶栏状态、最近 metric 时间 |
 | `/api/token-metadata` | 代币库 |

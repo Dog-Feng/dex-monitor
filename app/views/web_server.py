@@ -25,6 +25,12 @@ WEB_ROOT = Path(__file__).resolve().parents[2] / "web"
 DEFAULT_WEB_PORT = 8089
 
 
+def _monitor_token_limit(cfg: dict[str, Any]) -> int:
+    """看板默认条数跟随 discovery.fixed_top_gainers，未配置时取 100。"""
+    n = int(cfg.get("discovery", {}).get("fixed_top_gainers") or 0)
+    return n if n > 0 else 100
+
+
 def create_app(config: dict[str, Any] | None = None) -> Flask:
     cfg = config or load_config()
     db_path = cfg.get("sqlite", {}).get("path", "data/monitor.db")
@@ -77,7 +83,8 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     def api_monitor_tokens():
         from flask import request
 
-        limit = int(request.args.get("limit", 10))
+        default_limit = _monitor_token_limit(cfg)
+        limit = int(request.args.get("limit", default_limit))
         detection_cfg = cfg.get("detection", {})
         return jsonify(build_monitor_tokens(repo, detection_cfg, limit=limit))
 

@@ -10,7 +10,7 @@ Binance 永续 **涨幅榜自动发现** → **OI / 资金费率 / 大户多空*
 
 | 模块 | 说明 |
 |------|------|
-| 动态选币 | 24h 涨幅榜 Top **10**（剔除 TradFi 代币化股票），`fixed_top_gainers` 可配 |
+| 动态选币 | 24h 涨幅榜前 N（剔除 TradFi 代币化股票），条数由 `discovery.fixed_top_gainers` 决定 |
 | 合约数据 | K 线、OI、资金费率、大户多空比、OI/市值 |
 | 涨跌幅 | 15M/24H 来自 metrics + Binance ticker；**2D/3D 来自 Binance 1h K 线**（滚动 48h/72h） |
 | 异常检测 | SURGE / DUMP / 杠杆过热 |
@@ -127,7 +127,7 @@ alert:
 
 | Tab | 内容 |
 |-----|------|
-| **代币异常监控** | 一行一币（默认 **10** 个）：价格、15M/24H/**2D/3D**、费率、OI、OI÷市值、大户多空比、解锁看板、结论；支持排序；点击行查看归因 |
+| **代币异常监控** | 一行一币（条数 = `discovery.fixed_top_gainers`）：价格、15M/24H/**2D/3D**、费率、OI、OI÷市值、大户多空比、解锁看板、**代币信息看板**、结论；支持排序；点击行查看归因 |
 | **股票价差监控** | 代币化股票跨所标记价差 + 全球指数（需 `spread_monitor.enabled: true`） |
 | **代币库** | `token_metadata` 持久化合约（BSC 优先） |
 
@@ -139,7 +139,7 @@ alert:
 |------|------|
 | `GET /api/health` | 健康检查 |
 | `GET /api/overview` | 统计与最近采集时间 |
-| `GET /api/monitor-tokens?limit=10` | **主表数据**：指标 + 2D/3D + 结论 + narrative |
+| `GET /api/monitor-tokens` | **主表数据**：指标 + 2D/3D + 结论 + narrative；默认条数 = `discovery.fixed_top_gainers`（可用 `?limit=` 覆盖） |
 | `GET /api/spread/board` | 股票价差看板数据（quotes / indices / sync） |
 | `GET /api/metrics` | 各 symbol 最新 metrics 快照 |
 | `GET /api/anomalies?days=7` | 历史异常事件 |

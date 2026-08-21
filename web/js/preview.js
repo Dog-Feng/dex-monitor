@@ -217,6 +217,10 @@ function renderRow(t) {
   const linkCell = t.tokenomist
     ? `<a class="tk-ext-link" href="${t.tokenomist}" target="_blank" rel="noopener noreferrer" title="在 Tokenomist 查看解锁看板" onclick="event.stopPropagation()">解锁 ↗</a>`
     : '—';
+  const infoUrl = t.base ? `https://www.coinglass.com/zh/currencies/${encodeURIComponent(t.base)}` : '';
+  const infoCell = infoUrl
+    ? `<a class="tk-ext-link" href="${infoUrl}" target="_blank" rel="noopener noreferrer" title="在 CoinGlass 查看 ${t.base} 代币信息" onclick="event.stopPropagation()">信息 ↗</a>`
+    : '—';
   return `<tr data-symbol="${t.symbol}" class="${sel}">
     <td data-field="base">${t.base}</td>
     <td class="num" data-field="price">${fmtNum(t.price)}</td>
@@ -230,6 +234,7 @@ function renderRow(t) {
     <td class="num" data-field="whale_ls">${Number(t.whale_ls).toFixed(2)}</td>
     <td class="num" data-field="market_cap">${t.market_cap_display || '—'}</td>
     <td class="tk-link-cell" data-field="unlock_board">${linkCell}</td>
+    <td class="tk-link-cell" data-field="info_board">${infoCell}</td>
     <td class="cell-conclusion" data-field="conclusion">${getConclusion(t)}</td>
   </tr>`;
 }
